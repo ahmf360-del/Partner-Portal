@@ -2,7 +2,14 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-const dataDir = path.join(process.cwd(), "data");
+// Vercel's serverless functions run on a read-only filesystem except /tmp, and
+// /tmp isn't guaranteed to survive between invocations — so on Vercel this is
+// demo-quality persistence (data can reset on a cold start), not the real
+// production store. Fine for a first clickable version; swap for a hosted DB
+// (e.g. Turso/libSQL, Postgres) before this is the actual vendor link.
+const dataDir = process.env.VERCEL
+  ? "/tmp/breadfast-portal"
+  : path.join(process.cwd(), "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const globalForDb = globalThis as unknown as { bfDb?: Database.Database };
