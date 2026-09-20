@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/*
+ * Breadfast brand tokens — PLACEHOLDER.
+ * The uploaded brand-assets PDF only points at Breadfast's live SVG logo files
+ * (breadfast.com); this session's network policy blocks fetching that domain, so
+ * the exact hex codes and the real mark couldn't be pulled in. These are a
+ * reasonable approximation of Breadfast's known orange identity.
+ * Swap the values below (and src/components/brand/Logo.tsx) once you have the
+ * real SVG + confirmed hex — that's the only place brand color/logo lives.
+ */
+:root {
+  --bf-orange: #ff6a00;
+  --bf-orange-dark: #e85d00;
+  --bf-orange-soft: #ffe4cc;
+  --bf-cream: #fff8f0;
+  --bf-surface: #ffffff;
+  --bf-ink: #241c14;
+  --bf-ink-soft: #83766a;
+  --bf-line: #f0e2d2;
+  --bf-good: #1f8a57;
+  --bf-good-soft: #dff3e7;
+  --bf-warn: #b4790e;
+  --bf-warn-soft: #fbedcb;
+  --bf-critical: #d14343;
+  --bf-critical-soft: #fbe2e2;
+
+  --background: var(--bf-cream);
+  --foreground: var(--bf-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-brand: var(--bf-orange);
+  --color-brand-dark: var(--bf-orange-dark);
+  --color-brand-soft: var(--bf-orange-soft);
+  --color-surface: var(--bf-surface);
+  --color-ink: var(--bf-ink);
+  --color-ink-soft: var(--bf-ink-soft);
+  --color-line: var(--bf-line);
+  --color-good: var(--bf-good);
+  --color-good-soft: var(--bf-good-soft);
+  --color-warn: var(--bf-warn);
+  --color-warn-soft: var(--bf-warn-soft);
+  --color-critical: var(--bf-critical);
+  --color-critical-soft: var(--bf-critical-soft);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+}

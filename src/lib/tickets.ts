@@ -1,0 +1,251 @@
+import { db } from "./db";
+import { ticketCode } from "./format";
+import { OWNING_TEAM, SLA_HOURS, THRESHOLDS } from "./config";
+import type {
+  Category,
+  MenuLineItem,
+  Ticket,
+  TicketFields,
+  TicketStatus,
+  Vendor,
+} from "./types";
+
+interface VendorRow {
+  id: number;
+  token: string;
+  name: string;
+  phone: string;
+  branches: string;
+  portfolio_tier: string;
+  account_manager_name: string;
+}
+
+function vendorFromRow(row: VendorRow): Vendor {
+  return {
+    id: row.id,
+    token: row.token,
+    name: row.name,
+    phone: row.phone,
+    branches: JSON.parse(row.branches),
+    portfolioTier: row.portfolio_tier as Vendor["portfolioTier"],
+    accountManagerName: row.account_manager_name,
+  };
+}
+
+export function getVendorByToken(token: string): Vendor | null {
+  const row = db
+    .prepare("SELECT * FROM vendors WHERE token = ?")
+    .get(token) as VendorRow | undefined;
+  return row ? vendorFromRow(row) : null;
+}
+
+export function listVendors(): Vendor[] {
+  const rows = db.prepare("SELECT * FROM vendors ORDER BY id").all() as VendorRow[];
+  return rows.map(vendorFromRow);
+}
+
+interface TicketRow {
+  id: number;
+  code: string;
+  vendor_id: number;
+  branch: string;
+  category: string;
+  fields: string;
+  status: string;
+  owning_team: string;
+  auto_applied: number;
+  escalated: number;
+  escalation_reason: string | null;
+  reopened_count: number;
+  rating: number | null;
+  created_at: string;
+  sla_due_at: string;
+  resolved_at: string | null;
+}
+
+function ticketFromRow(row: TicketRow): Ticket {
+  return {
+    id: row.id,
+    code: row.code,
+    vendorId: row.vendor_id,
+    branch: row.branch,
+    category: row.category as Category,
+    fields: JSON.parse(row.fields),
+    status: row.status as TicketStatus,
+    owningTeam: row.owning_team,
+    autoApplied: !!row.auto_applied,
+    escalated: !!row.escalated,
+    escalationReason: row.escalation_reason,
+    reopenedCount: row.reopened_count,
+    rating: row.rating,
+    createdAt: row.created_at,
+    slaDueAt: row.sla_due_at,
+    resolvedAt: row.resolved_at,
+  };
+}
+
+function addHours(hours: number): string {
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+/** Decides auto-apply + SLA hours for a single Menu & Content line item. */
+function resolveMenuItem(item: MenuLineItem): { autoApplied: boolean; slaHours: number } {
+  switch (item.changeType) {
+    case "availability":
+      return { autoApplied: true, slaHours: SLA_HOURS.menu.availability };
+    case "remove_temp":
+      return { autoApplied: true, slaHours: SLA_HOURS.menu.remove_temp };
+    case "price_change": {
+      const current = parseFloat(item.currentPrice ?? "");
+      const next = parseFloat(item.newPrice ?? "");
+      const movePct =
+        Number.isFinite(current) && current > 0 && Number.isFinite(next)
+          ? (Math.abs(next - current) / current) * 100
+          : Infinity;
+      const autoApplied = movePct <= THRESHOLDS.priceChangeAutoApplyPct;
+      return {
+        autoApplied,
+        slaHours: autoApplied
+          ? SLA_HOURS.menu.price_change_auto
+          : SLA_HOURS.menu.price_change_review,
+      };
+    }
+    case "remove_permanent":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.remove_permanent };
+    case "add_item":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.add_item };
+    case "update_content":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.update_content };
+    case "reorder":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.reorder };
+  }
+}
+
+interface CreateTicketInput {
+  vendorId: number;
+  branch: string;
+  category: Category;
+  fields: TicketFields;
+}
+
+interface CreateTicketResult {
+  autoApplied: boolean;
+  escalated: boolean;
+  escalationReason: string | null;
+}
+
+function resolveCategory(
+  category: Category,
+  fields: TicketFields
+): { autoApplied: boolean; slaHours: number; escalated: boolean; escalationReason: string | null } {
+  let escalated = !!fields.talkToAccountManager;
+  let escalationReason = escalated ? "vendor_requested" : null;
+
+  if (category === "discounts") {
+    if (fields.campaignType === "commercial_terms") {
+      escalated = true;
+      escalationReason = "commercial_terms";
+      return { autoApplied: false, slaHours: SLA_HOURS.discounts, escalated, escalationReason };
+    }
+    const pct = parseFloat(fields.discountPercent ?? "");
+    const autoApplied = Number.isFinite(pct) && pct <= THRESHOLDS.discountAutoApprovePct;
+    return { autoApplied, slaHours: SLA_HOURS.discounts, escalated, escalationReason };
+  }
+
+  if (category === "menu") {
+    const items = fields.items ?? [];
+    const resolved = items.map((item) => ({ ...item, ...resolveMenuItem(item) }));
+    fields.items = resolved;
+    const autoApplied = resolved.length > 0 && resolved.every((i) => i.autoApplied);
+    const slaHours = resolved.length
+      ? Math.min(...resolved.map((i) => i.slaHours))
+      : SLA_HOURS.other;
+    return { autoApplied, slaHours, escalated, escalationReason };
+  }
+
+  if (category === "finance") return { autoApplied: false, slaHours: SLA_HOURS.finance, escalated, escalationReason };
+  if (category === "tech") return { autoApplied: false, slaHours: SLA_HOURS.tech, escalated, escalationReason };
+  return { autoApplied: false, slaHours: SLA_HOURS.other, escalated, escalationReason };
+}
+
+export function createTicket(input: CreateTicketInput): { ticket: Ticket } & CreateTicketResult {
+  const { autoApplied, slaHours, escalated, escalationReason } = resolveCategory(
+    input.category,
+    input.fields
+  );
+
+  const now = new Date().toISOString();
+  const slaDueAt = addHours(slaHours);
+  const status: TicketStatus = autoApplied ? "resolved" : "received";
+  const owningTeam = OWNING_TEAM[input.category];
+
+  const insert = db.prepare(`
+    INSERT INTO tickets
+      (vendor_id, branch, category, fields, status, owning_team, auto_applied, escalated, escalation_reason, created_at, sla_due_at, resolved_at)
+    VALUES
+      (@vendorId, @branch, @category, @fields, @status, @owningTeam, @autoApplied, @escalated, @escalationReason, @createdAt, @slaDueAt, @resolvedAt)
+  `);
+
+  const result = insert.run({
+    vendorId: input.vendorId,
+    branch: input.branch,
+    category: input.category,
+    fields: JSON.stringify(input.fields),
+    status,
+    owningTeam,
+    autoApplied: autoApplied ? 1 : 0,
+    escalated: escalated ? 1 : 0,
+    escalationReason,
+    createdAt: now,
+    slaDueAt,
+    resolvedAt: autoApplied ? now : null,
+  });
+
+  const id = result.lastInsertRowid as number;
+  const code = ticketCode(id);
+  db.prepare("UPDATE tickets SET code = ? WHERE id = ?").run(code, id);
+
+  const row = db.prepare("SELECT * FROM tickets WHERE id = ?").get(id) as TicketRow;
+  return { ticket: ticketFromRow(row), autoApplied, escalated, escalationReason };
+}
+
+export function listTicketsForVendor(vendorId: number): Ticket[] {
+  const rows = db
+    .prepare("SELECT * FROM tickets WHERE vendor_id = ? ORDER BY created_at DESC")
+    .all(vendorId) as TicketRow[];
+  return rows.map(ticketFromRow);
+}
+
+export function getTicketById(id: number): Ticket | null {
+  const row = db.prepare("SELECT * FROM tickets WHERE id = ?").get(id) as TicketRow | undefined;
+  return row ? ticketFromRow(row) : null;
+}
+
+export function reopenTicket(id: number): Ticket | null {
+  const ticket = getTicketById(id);
+  if (!ticket || ticket.status !== "resolved") return ticket;
+
+  const newReopenedCount = ticket.reopenedCount + 1;
+  const escalated = ticket.escalated || newReopenedCount > 1;
+  const escalationReason = ticket.escalated
+    ? ticket.escalationReason
+    : newReopenedCount > 1
+    ? "reopened_multiple"
+    : ticket.escalationReason;
+
+  db.prepare(`
+    UPDATE tickets
+    SET status = 'in_progress', reopened_count = ?, resolved_at = NULL, rating = NULL,
+        escalated = ?, escalation_reason = ?
+    WHERE id = ?
+  `).run(newReopenedCount, escalated ? 1 : 0, escalationReason, id);
+
+  return getTicketById(id);
+}
+
+export function rateTicket(id: number, rating: number): Ticket | null {
+  const ticket = getTicketById(id);
+  if (!ticket || ticket.status !== "resolved") return ticket;
+  db.prepare("UPDATE tickets SET rating = ? WHERE id = ?").run(rating, id);
+  return getTicketById(id);
+}
