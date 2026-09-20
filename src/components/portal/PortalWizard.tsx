@@ -190,7 +190,7 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
                   type="checkbox"
                   checked={!!fields.talkToAccountManager}
                   onChange={(e) => update({ talkToAccountManager: e.target.checked })}
-                  className="mt-0.5 h-4 w-4 accent-[var(--bf-orange)]"
+                  className="mt-0.5 h-4 w-4 accent-[var(--bf-magenta)]"
                 />
                 <span className="text-sm">
                   <span className="font-medium">Skip the queue — talk to {vendor.accountManagerName} directly</span>

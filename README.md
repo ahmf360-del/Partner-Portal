@@ -29,13 +29,16 @@ run (gitignored — delete it to reset the demo data).
   flags (vendor asked for the AM, commercial terms, reopened more than once) all run for real
   against SQLite.
 
+## Brand identity
+
+Real, not a placeholder: `public/brand/logo-mark.png` is the mark the user supplied, rendered
+untouched (no recolor/redraw/resize distortion — `src/components/brand/Logo.tsx`). The magenta in
+`src/app/globals.css` (`--bf-magenta: #aa0082`) was sampled directly from that image's pixels, not
+estimated. If a vector version or an official style guide (typography, clear-space, do's/don'ts)
+becomes available later, swap the PNG for the SVG in that same file — nothing else needs to change.
+
 ## What's mocked (see `src/lib/config.ts` and inline comments)
 
-- **Brand colors & logo** (`src/app/globals.css`, `src/components/brand/Logo.tsx`) — the uploaded
-  brand-assets reference only pointed at Breadfast's live SVGs on breadfast.com; this session's
-  network policy blocked fetching that domain, so the palette is a reasoned approximation and the
-  mark is a placeholder wordmark+icon. Drop the real SVG in `/public` and swap those two files once
-  you have the exact hex codes.
 - **OTP / verification** (`src/lib/otp.ts`) — no WhatsApp Business API or SMS provider is wired up,
   so the code is shown directly on screen instead of texted.
 - **WhatsApp notifications** — the confirmation screen says a message is coming, but nothing is
@@ -53,5 +56,5 @@ src/lib/         DB (better-sqlite3), ticket/SLA/routing logic, OTP mock, format
 src/app/api/     Route handlers: otp/request, otp/verify, tickets, tickets/[id]/reopen|rate
 src/app/p/[token]/  The vendor's persistent link
 src/components/portal/  Wizard, per-category forms, status/tracking view
-src/components/brand/   Placeholder logo
+src/components/brand/   Logo (renders public/brand/logo-mark.png)
 ```
