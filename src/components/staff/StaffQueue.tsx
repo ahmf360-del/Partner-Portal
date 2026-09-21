@@ -3,23 +3,37 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime, timeUntil } from "@/lib/format";
-import { dictionary } from "@/lib/i18n/dictionary";
 import type { TicketWithVendor } from "@/lib/types";
 import { Button, Card, Pill, TextArea } from "@/components/ui/primitives";
 import { Logo } from "@/components/brand/Logo";
+import { CategoryIcon } from "@/components/portal/CategoryIcon";
 import { TicketFieldsView } from "@/components/staff/TicketFieldsView";
-
-const en = dictionary.en;
+import { LocaleToggle, useLocale } from "@/components/i18n/LocaleProvider";
+import type { TranslationKey } from "@/lib/i18n/dictionary";
 
 type Filter = "open" | "escalated" | "resolved" | "all";
 
-function dueLabel(ticket: TicketWithVendor): { text: string; overdue: boolean } {
-  if (ticket.status === "resolved") return { text: `resolved ${ticket.resolvedAt ? formatDateTime(ticket.resolvedAt) : ""}`, overdue: false };
-  const { label, overdue } = timeUntil(ticket.slaDueAt);
-  return { text: overdue ? `${label} overdue` : `due in ${label}`, overdue };
+function escalationReasonText(t: (k: TranslationKey) => string, reason: string | null): string | null {
+  if (reason === "vendor_requested") return t("team.escalationReason.vendor_requested");
+  if (reason === "commercial_terms") return t("team.escalationReason.commercial_terms");
+  if (reason === "reopened_multiple") return t("team.escalationReason.reopened_multiple");
+  return reason;
+}
+
+function useDueLabel() {
+  const { t } = useLocale();
+  return (ticket: TicketWithVendor) => {
+    if (ticket.status === "resolved") {
+      return { text: t("status.resolvedAt", { date: ticket.resolvedAt ? formatDateTime(ticket.resolvedAt) : "" }), overdue: false };
+    }
+    const due = timeUntil(ticket.slaDueAt);
+    return { text: t(due.overdue ? "status.overdue" : "status.dueIn", { x: due.label }), overdue: due.overdue };
+  };
 }
 
 function TicketRow({ ticket, active, onClick }: { ticket: TicketWithVendor; active: boolean; onClick: () => void }) {
+  const { t } = useLocale();
+  const dueLabel = useDueLabel();
   const due = dueLabel(ticket);
   return (
     <button
@@ -31,22 +45,35 @@ function TicketRow({ ticket, active, onClick }: { ticket: TicketWithVendor; acti
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-xs font-semibold">{ticket.code}</span>
         {ticket.status === "resolved" ? (
-          <Pill tone="good">Resolved</Pill>
+          <Pill tone="good">{t("status.resolved")}</Pill>
         ) : due.overdue ? (
-          <Pill tone="critical">Breached</Pill>
+          <Pill tone="critical">{t("status.breached")}</Pill>
         ) : (
-          <Pill tone={ticket.status === "in_progress" ? "brand" : "neutral"}>{ticket.status === "in_progress" ? "In progress" : "New"}</Pill>
+          <Pill tone={ticket.status === "in_progress" ? "brand" : "neutral"}>
+            {ticket.status === "in_progress" ? t("status.inProgress") : t("status.received")}
+          </Pill>
         )}
       </div>
-      <p className="mt-1 text-sm font-medium">{ticket.vendorName} · {ticket.branch}</p>
-      <p className="text-xs text-ink-soft">{en[`category.${ticket.category}.label`]} · {due.text}</p>
-      {ticket.escalated && <Pill tone="warn">Escalated</Pill>}
+      <p className="mt-1.5 flex items-center gap-2 text-sm font-medium">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+          <CategoryIcon category={ticket.category} className="h-3.5 w-3.5" />
+        </span>
+        {ticket.vendorName} · {ticket.branch}
+      </p>
+      <p className="mt-1 text-xs text-ink-soft">{t(`category.${ticket.category}.label`)} · {due.text}</p>
+      {ticket.escalated && (
+        <div className="mt-1.5">
+          <Pill tone="warn">{t("team.badge.escalated")}</Pill>
+        </div>
+      )}
     </button>
   );
 }
 
 export function StaffQueue({ staff }: { staff: { name: string; team: string } }) {
+  const { t } = useLocale();
   const router = useRouter();
+  const dueLabel = useDueLabel();
   const [tickets, setTickets] = useState<TicketWithVendor[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("open");
@@ -61,9 +88,9 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
       const data = await res.json();
       setTickets(data.tickets ?? []);
     } catch {
-      setError("Couldn't load the queue — check your connection and try again.");
+      setError(t("team.error.load"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     // Fetch-on-mount — nothing to subscribe to.
@@ -73,10 +100,10 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
 
   const filtered = useMemo(() => {
     if (!tickets) return [];
-    const list = tickets.filter((t) => {
-      if (filter === "open") return t.status !== "resolved";
-      if (filter === "escalated") return t.escalated;
-      if (filter === "resolved") return t.status === "resolved";
+    const list = tickets.filter((tk) => {
+      if (filter === "open") return tk.status !== "resolved";
+      if (filter === "escalated") return tk.escalated;
+      if (filter === "resolved") return tk.status === "resolved";
       return true;
     });
     return [...list].sort((a, b) => {
@@ -85,7 +112,7 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
     });
   }, [tickets, filter]);
 
-  const selected = tickets?.find((t) => t.id === selectedId) ?? null;
+  const selected = tickets?.find((tk) => tk.id === selectedId) ?? null;
 
   async function logout() {
     await fetch("/api/staff/logout", { method: "POST" });
@@ -104,10 +131,10 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setTickets((prev) => prev?.map((t) => (t.id === selected.id ? { ...t, ...data.ticket } : t)) ?? null);
+      setTickets((prev) => prev?.map((tk) => (tk.id === selected.id ? { ...tk, ...data.ticket } : tk)) ?? null);
       setReplyBody("");
     } catch {
-      setError("Couldn't send that — try again in a moment.");
+      setError(t("team.error.send"));
     } finally {
       setSending(false);
     }
@@ -116,8 +143,8 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
   const counts = useMemo(() => {
     if (!tickets) return { open: 0, escalated: 0 };
     return {
-      open: tickets.filter((t) => t.status !== "resolved").length,
-      escalated: tickets.filter((t) => t.escalated).length,
+      open: tickets.filter((tk) => tk.status !== "resolved").length,
+      escalated: tickets.filter((tk) => tk.escalated).length,
     };
   }, [tickets]);
 
@@ -126,12 +153,13 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
       <header className="flex items-center justify-between">
         <Logo />
         <div className="flex items-center gap-3">
+          <LocaleToggle />
           <div className="text-end">
             <p className="text-sm font-semibold">{staff.team}</p>
             <p className="text-xs text-ink-soft">{staff.name}</p>
           </div>
           <button onClick={logout} className="text-xs font-semibold text-ink-soft hover:text-brand">
-            Log out
+            {t("rail.logout")}
           </button>
         </div>
       </header>
@@ -142,10 +170,10 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
         <div className={`flex flex-col gap-3 ${selected ? "hidden lg:flex" : ""}`}>
           <nav className="flex gap-1 rounded-xl bg-brand-soft/40 p-1">
             {([
-              ["open", `Open (${counts.open})`],
-              ["escalated", `Escalated (${counts.escalated})`],
-              ["resolved", "Resolved"],
-              ["all", "All"],
+              ["open", `${t("team.tab.open")} (${counts.open})`],
+              ["escalated", `${t("team.tab.escalated")} (${counts.escalated})`],
+              ["resolved", t("team.tab.resolved")],
+              ["all", t("team.tab.all")],
             ] as [Filter, string][]).map(([f, label]) => (
               <button
                 key={f}
@@ -160,15 +188,15 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
           </nav>
 
           {tickets === null ? (
-            <p className="text-sm text-ink-soft">Loading…</p>
+            <p className="text-sm text-ink-soft">{t("team.queue.loading")}</p>
           ) : filtered.length === 0 ? (
             <Card className="p-6 text-center">
-              <p className="text-sm text-ink-soft">Nothing here right now.</p>
+              <p className="text-sm text-ink-soft">{t("team.queue.empty")}</p>
             </Card>
           ) : (
             <div className="grid gap-2">
-              {filtered.map((t) => (
-                <TicketRow key={t.id} ticket={t} active={t.id === selectedId} onClick={() => setSelectedId(t.id)} />
+              {filtered.map((tk) => (
+                <TicketRow key={tk.id} ticket={tk} active={tk.id === selectedId} onClick={() => setSelectedId(tk.id)} />
               ))}
             </div>
           )}
@@ -177,35 +205,43 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
         {selected ? (
           <Card className="p-6">
             <button onClick={() => setSelectedId(null)} className="mb-3 text-xs font-semibold text-ink-soft hover:text-brand lg:hidden">
-              ← Back to queue
+              {t("team.back")}
             </button>
 
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm font-semibold">{selected.code}</span>
-                  {selected.status === "resolved" && <Pill tone="good">Resolved</Pill>}
-                  {selected.escalated && <Pill tone="warn">Escalated{selected.escalationReason ? ` — ${selected.escalationReason.replace(/_/g, " ")}` : ""}</Pill>}
-                  {selected.reopenedCount > 0 && <Pill tone="critical">Reopened {selected.reopenedCount}×</Pill>}
+                  {selected.status === "resolved" && <Pill tone="good">{t("status.resolved")}</Pill>}
+                  {selected.escalated && (
+                    <Pill tone="warn">
+                      {t("team.badge.escalated")}
+                      {selected.escalationReason ? ` — ${escalationReasonText(t, selected.escalationReason)}` : ""}
+                    </Pill>
+                  )}
+                  {selected.reopenedCount > 0 && <Pill tone="critical">{t("status.reopenedCount", { n: selected.reopenedCount })}</Pill>}
                 </div>
                 <p className="mt-1 text-sm text-ink-soft">
-                  {selected.vendorName} · {selected.branch} · filed {formatDateTime(selected.createdAt)}
+                  {selected.vendorName} · {selected.branch} · {t("status.filed", { date: formatDateTime(selected.createdAt) })}
                 </p>
               </div>
               <span className="text-xs font-medium text-ink-soft">{dueLabel(selected).text}</span>
             </div>
 
             <div className="mt-4 rounded-lg border border-line p-3.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                {en[`category.${selected.category}.label`]}
+              <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+                  <CategoryIcon category={selected.category} className="h-3.5 w-3.5" />
+                </span>
+                {t(`category.${selected.category}.label`)}
               </p>
               <TicketFieldsView category={selected.category} fields={selected.fields} />
             </div>
 
             <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Conversation</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">{t("team.conversation.heading")}</p>
               <div className="flex flex-col gap-2">
-                {selected.messages.length === 0 && <p className="text-xs text-ink-soft">No replies yet.</p>}
+                {selected.messages.length === 0 && <p className="text-xs text-ink-soft">{t("team.conversation.empty")}</p>}
                 {selected.messages.map((m) => (
                   <div
                     key={m.id}
@@ -222,23 +258,23 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
               <TextArea
                 className="mt-3"
                 rows={3}
-                placeholder="Write a reply the vendor will see…"
+                placeholder={t("team.reply.placeholder")}
                 value={replyBody}
                 onChange={(e) => setReplyBody(e.target.value)}
               />
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button onClick={() => send(false)} disabled={sending || !replyBody.trim()}>
-                  {sending ? "Sending…" : "Send reply"}
+                  {sending ? t("team.reply.sending") : t("team.reply.send")}
                 </Button>
                 <Button variant="secondary" onClick={() => send(true)} disabled={sending || selected.status === "resolved"}>
-                  {replyBody.trim() ? "Reply & resolve" : "Mark resolved"}
+                  {replyBody.trim() ? t("team.reply.replyResolve") : t("team.reply.resolveOnly")}
                 </Button>
               </div>
             </div>
           </Card>
         ) : (
           <Card className="hidden items-center justify-center p-10 text-center lg:flex">
-            <p className="text-sm text-ink-soft">Pick a ticket from the queue to see the details and reply.</p>
+            <p className="text-sm text-ink-soft">{t("team.queue.pick")}</p>
           </Card>
         )}
       </div>

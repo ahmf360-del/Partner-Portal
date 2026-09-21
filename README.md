@@ -42,8 +42,10 @@ One URL, no `/en` vs `/ar` routes — a toggle (`src/components/i18n/LocaleProvi
 direction already mirrors the two-column layout under `dir="rtl"`, so the brand panel flips to the
 right automatically. Arabic renders in Cairo (loaded alongside Inter/Poppins in `layout.tsx`); the
 preference is remembered per browser (falls back to the browser's own language on first visit).
-Covers the full vendor flow (login, wizard, every category form, status tracking) — the internal
-`/admin` tool stays English-only, since it's for the account manager, not vendors.
+Covers the vendor flow (login, wizard, every category form, status tracking) and the `/team` staff
+queue (login, ticket list, ticket detail, reply) — the same toggle, same dictionary, same BrandRail
+layout on both. `/admin` (vendor-account management) is the one page that stays English-only, since
+it's a lower-traffic tool for whoever manages accounts, not something teams use all day.
 
 ## Vendor accounts (`/admin`)
 
@@ -72,8 +74,8 @@ The queue lists every ticket for that team (filterable: Open / Escalated / Resol
 escalated-first then by SLA urgency), a click opens the full ticket — vendor, branch, every field
 submitted, and the reply thread. Staff can send a reply (the vendor sees it on their own status
 page the next time they open it), mark a ticket resolved with or without a reply, and an untouched
-ticket automatically moves from "received" to "in progress" on the first reply. Like `/admin`,
-this tool is English-only by design.
+ticket automatically moves from "received" to "in progress" on the first reply. Bilingual and using
+the same BrandRail split-screen layout as the vendor side — same design system, same EN/AR toggle.
 
 ## What's real
 
@@ -119,6 +121,6 @@ src/app/page.tsx     Vendor: session-aware login form or the wizard
 src/app/team/page.tsx  Staff: session-aware login form or the queue
 src/components/portal/  Vendor wizard, per-category forms, status/tracking view
 src/components/staff/   Staff queue (list + ticket detail + reply), read-only field renderer
-src/components/i18n/    Locale context, hook, and EN/AR toggle (vendor side only)
+src/components/i18n/    Locale context, hook, and EN/AR toggle (vendor + staff sides)
 src/components/brand/   Logo (renders public/brand/logo-mark.png), the two-column BrandRail layout
 ```
