@@ -1,8 +1,9 @@
 # Breadfast Partner Portal — v1
 
-The vendor-facing link from the workflow design: a small/mid-size restaurant partner opens their
-persistent link, verifies once, picks a branch and a category, fills a form that adapts to what
-they picked, and gets a ticket ID plus a status page they can return to any time.
+The vendor-facing app from the workflow design: a small/mid-size restaurant partner signs in with
+a username and password, picks a branch and a category, fills a form that adapts to what they
+picked, and gets a ticket ID plus a status page they can return to any time. Bilingual — English
+and Arabic (with RTL layout) on the same URL, switchable in-page.
 
 This is the **vendor side only** (build order steps 1–2). The internal team queues, SLA-breach
 escalation dashboard, and real WhatsApp/SMS delivery are follow-up work — see "What's mocked" below.
@@ -14,32 +15,52 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` — the vendor links themselves aren't listed there (see "Link
-directory" below); the demo ones are `/p/el-zaeem` and `/p/cafe-nour`. In production each vendor
-gets one persistent link sent once via WhatsApp; there's no separate login.
+Open `http://localhost:3000` and sign in. Demo accounts (see `src/lib/db.ts`):
+
+| Username  | Password    | Vendor    |
+| --------- | ----------- | --------- |
+| `elzaeem` | `bread-2026` | El Zaeem  |
+| `cafenour`| `bread-2026` | Cafe Nour |
 
 Data lives in a local SQLite file at `data/portal.db`, created and seeded automatically on first
 run (gitignored — delete it to reset the demo data).
 
-## Link directory (`/admin`)
+## Auth model
 
-Password-gated page listing every vendor's persistent link with a one-tap copy button — this is
-how an account manager would actually get a link to send. Gated by a single shared password (not
-real multi-admin auth): set `ADMIN_PASSWORD` in your environment before deploying anywhere real;
-locally it falls back to `breadfast-demo` (see `src/lib/adminAuth.ts`).
+Username + password, not OTP/SMS/WhatsApp — the account manager creates an account and relays the
+credentials directly (`/admin`, below). A signed, httpOnly session cookie (`src/lib/session.ts`,
+`SESSION_SECRET` env var) identifies the vendor on every request; passwords are hashed with Node's
+built-in `scrypt` (`src/lib/password.ts`) — no plaintext password is ever stored, and a reset
+password is shown to the account manager exactly once.
+
+## Bilingual (English / Arabic)
+
+One URL, no `/en` vs `/ar` routes — a toggle (`src/components/i18n/LocaleProvider.tsx`) switches
+`dir`/`lang` on `<html>` and swaps every string from `src/lib/i18n/dictionary.ts`. Flexbox's `row`
+direction already mirrors the two-column layout under `dir="rtl"`, so the brand panel flips to the
+right automatically. Arabic renders in Cairo (loaded alongside Inter/Poppins in `layout.tsx`); the
+preference is remembered per browser (falls back to the browser's own language on first visit).
+Covers the full vendor flow (login, wizard, every category form, status tracking) — the internal
+`/admin` tool stays English-only, since it's for the account manager, not vendors.
+
+## Vendor accounts (`/admin`)
+
+Password-gated internal page listing every vendor with a "Reset password" button — this is how an
+account manager hands out or resets access, since there's no self-serve signup. Gated by a single
+shared password (not real multi-admin auth): set `ADMIN_PASSWORD` in your environment before
+deploying anywhere real; locally it falls back to `breadfast-demo` (see `src/lib/adminAuth.ts`).
 
 ## What's real
 
-- Full vendor flow: verify → branch → category → dynamic form → submit → ticket ID → track/reopen/rate.
+- Full vendor flow: sign in → branch → category → dynamic form → submit → ticket ID → track/reopen/rate.
 - Menu & Content supports multiple line items per ticket, each independently routed by risk
   (`src/lib/tickets.ts` → `resolveMenuItem`), matching the design doc's Fig. 3.
 - Auto-apply vs. human-review logic, SLA due dates, owning-team assignment, and the escalation
   flags (vendor asked for the AM, commercial terms, reopened more than once) all run for real
   against SQLite.
-- The public homepage doesn't list vendor tokens (fixed after an earlier draft exposed them) —
-  links only surface through the password-gated `/admin` directory.
-- Every network call (submit, reopen, rate, OTP request/verify, ticket list) shows a real error
-  message on failure instead of failing silently.
+- Ticket ownership is checked server-side against the session on every read/reopen/rate — a vendor
+  can't view or act on another vendor's tickets by guessing an ID.
+- Every network call shows a real error message on failure instead of failing silently.
 
 ## Brand identity
 
@@ -51,8 +72,6 @@ becomes available later, swap the PNG for the SVG in that same file — nothing 
 
 ## What's mocked (see `src/lib/config.ts` and inline comments)
 
-- **OTP / verification** (`src/lib/otp.ts`) — no WhatsApp Business API or SMS provider is wired up,
-  so the code is shown directly on screen instead of texted.
 - **WhatsApp notifications** — the confirmation screen says a message is coming, but nothing is
   actually sent yet.
 - **File uploads** — photo/screenshot inputs capture a filename only; no storage backend is connected.
@@ -64,9 +83,11 @@ becomes available later, swap the PNG for the SVG in that same file — nothing 
 ## Structure
 
 ```
-src/lib/         DB (better-sqlite3), ticket/SLA/routing logic, OTP mock, formatting
-src/app/api/     Route handlers: otp/request, otp/verify, tickets, tickets/[id]/reopen|rate
-src/app/p/[token]/  The vendor's persistent link
+src/lib/         DB (better-sqlite3), ticket/SLA/routing logic, session, passwords, formatting
+src/lib/i18n/    Translation dictionary (English + Arabic)
+src/app/api/     Route handlers: auth/login|logout, tickets, tickets/[id]/reopen|rate, admin/*
+src/app/page.tsx  Session-aware: login form or the wizard
 src/components/portal/  Wizard, per-category forms, status/tracking view
-src/components/brand/   Logo (renders public/brand/logo-mark.png)
+src/components/i18n/    Locale context, hook, and EN/AR toggle
+src/components/brand/   Logo (renders public/brand/logo-mark.png), the two-column BrandRail layout
 ```

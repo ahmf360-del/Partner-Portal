@@ -2,26 +2,29 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatDateTime, timeUntil } from "@/lib/format";
-import { CATEGORY_LABEL } from "@/lib/types";
 import type { Ticket } from "@/lib/types";
 import { Button, Card, Pill } from "@/components/ui/primitives";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
-function statusPill(ticket: Ticket) {
-  if (ticket.status === "resolved") return <Pill tone="good">Resolved</Pill>;
-  const overdue = new Date(ticket.slaDueAt).getTime() < Date.now();
-  if (overdue) return <Pill tone="critical">SLA breached</Pill>;
-  return <Pill tone={ticket.status === "in_progress" ? "brand" : "neutral"}>
-    {ticket.status === "in_progress" ? "In progress" : "Received"}
-  </Pill>;
+function StatusPill({ ticket, overdue }: { ticket: Ticket; overdue: boolean }) {
+  const { t } = useLocale();
+  if (ticket.status === "resolved") return <Pill tone="good">{t("status.resolved")}</Pill>;
+  if (overdue) return <Pill tone="critical">{t("status.breached")}</Pill>;
+  return (
+    <Pill tone={ticket.status === "in_progress" ? "brand" : "neutral"}>
+      {ticket.status === "in_progress" ? t("status.inProgress") : t("status.received")}
+    </Pill>
+  );
 }
 
 function Stars({ ticket, onRate }: { ticket: Ticket; onRate: (rating: number) => void }) {
+  const { t } = useLocale();
   if (ticket.rating) {
-    return <p className="text-xs text-ink-soft">You rated this {ticket.rating}/5 — thanks!</p>;
+    return <p className="text-xs text-ink-soft">{t("status.rated", { n: ticket.rating })}</p>;
   }
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-ink-soft">How did we do?</span>
+      <span className="text-xs text-ink-soft">{t("status.rateePrompt")}</span>
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -38,22 +41,23 @@ function Stars({ ticket, onRate }: { ticket: Ticket; onRate: (rating: number) =>
   );
 }
 
-export function StatusView({ token }: { token: string }) {
+export function StatusView() {
+  const { t } = useLocale();
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/tickets?token=${token}`);
+      const res = await fetch("/api/tickets");
       if (!res.ok) throw new Error();
       const data = await res.json();
       setTickets(data.tickets ?? []);
       setError(null);
     } catch {
-      setError("Couldn't load your tickets — check your connection and try again.");
+      setError(t("status.error.load"));
     }
-  }, [token]);
+  }, [t]);
 
   useEffect(() => {
     // Fetch-on-mount for this viewer's tickets — nothing to subscribe to.
@@ -68,7 +72,7 @@ export function StatusView({ token }: { token: string }) {
       if (!res.ok) throw new Error();
       await load();
     } catch {
-      setError("Couldn't reopen that ticket — try again in a moment.");
+      setError(t("status.error.reopen"));
     } finally {
       setBusyId(null);
     }
@@ -85,24 +89,20 @@ export function StatusView({ token }: { token: string }) {
       if (!res.ok) throw new Error();
       await load();
     } catch {
-      setError("Couldn't save your rating — try again in a moment.");
+      setError(t("status.error.rate"));
     } finally {
       setBusyId(null);
     }
   }
 
   if (tickets === null) {
-    return (
-      <p className="text-sm text-ink-soft">
-        {error ?? "Loading your tickets…"}
-      </p>
-    );
+    return <p className="text-sm text-ink-soft">{error ?? t("status.loading")}</p>;
   }
 
   if (tickets.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-sm text-ink-soft">No requests yet — anything you submit will show up here.</p>
+        <p className="text-sm text-ink-soft">{t("status.empty")}</p>
       </Card>
     );
   }
@@ -112,38 +112,46 @@ export function StatusView({ token }: { token: string }) {
       {error && (
         <p className="rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">{error}</p>
       )}
-      {tickets.map((t) => (
-        <Card key={t.id} className="p-4">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-semibold">{t.code}</span>
-                {statusPill(t)}
-                {t.escalated && <Pill tone="warn">With account manager</Pill>}
+      {tickets.map((tk) => {
+        const due = timeUntil(tk.slaDueAt);
+        return (
+          <Card key={tk.id} className="p-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-semibold">{tk.code}</span>
+                  <StatusPill ticket={tk} overdue={due.overdue} />
+                  {tk.escalated && <Pill tone="warn">{t("status.withAm")}</Pill>}
+                </div>
+                <p className="mt-1 text-sm text-ink-soft">
+                  {t(`category.${tk.category}.label`)} · {tk.branch} · {t("status.filed", { date: formatDateTime(tk.createdAt) })}
+                </p>
               </div>
-              <p className="mt-1 text-sm text-ink-soft">
-                {CATEGORY_LABEL[t.category]} · {t.branch} · filed {formatDateTime(t.createdAt)}
-              </p>
+              <span className="text-xs font-medium text-ink-soft">
+                {tk.status === "resolved"
+                  ? t("status.resolvedAt", { date: tk.resolvedAt ? formatDateTime(tk.resolvedAt) : "" })
+                  : t(due.overdue ? "status.overdue" : "status.dueIn", { x: due.label })}
+              </span>
             </div>
-            <span className="text-xs font-medium text-ink-soft">
-              {t.status === "resolved" ? `resolved ${t.resolvedAt ? formatDateTime(t.resolvedAt) : ""}` : timeUntil(t.slaDueAt)}
-            </span>
-          </div>
 
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
-            {t.status === "resolved" ? (
-              <Stars ticket={t} onRate={(r) => rate(t.id, r)} />
-            ) : (
-              <span className="text-xs text-ink-soft">{t.owningTeam}{t.reopenedCount > 0 ? ` · reopened ${t.reopenedCount}×` : ""}</span>
-            )}
-            {t.status === "resolved" && (
-              <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => reopen(t.id)} disabled={busyId === t.id}>
-                Not actually fixed? Reopen
-              </Button>
-            )}
-          </div>
-        </Card>
-      ))}
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
+              {tk.status === "resolved" ? (
+                <Stars ticket={tk} onRate={(r) => rate(tk.id, r)} />
+              ) : (
+                <span className="text-xs text-ink-soft">
+                  {tk.owningTeam}
+                  {tk.reopenedCount > 0 ? ` · ${t("status.reopenedCount", { n: tk.reopenedCount })}` : ""}
+                </span>
+              )}
+              {tk.status === "resolved" && (
+                <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => reopen(tk.id)} disabled={busyId === tk.id}>
+                  {t("status.reopen")}
+                </Button>
+              )}
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }

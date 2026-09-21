@@ -10,7 +10,10 @@ export function ticketCode(id: number): string {
   return `BF-${1000 + id}`;
 }
 
-export function timeUntil(iso: string): string {
+/** Duration until (or since) an SLA deadline. Kept locale-neutral (digits +
+ * unit letters read fine in both English and Arabic); the caller wraps it
+ * in a translated "due in {x}" / "{x} overdue" phrase. */
+export function timeUntil(iso: string): { label: string; overdue: boolean } {
   const diffMs = new Date(iso).getTime() - Date.now();
   const overdue = diffMs < 0;
   const abs = Math.abs(diffMs);
@@ -23,7 +26,7 @@ export function timeUntil(iso: string): string {
   else if (hours >= 1) label = `${hours}h ${mins % 60}m`;
   else label = `${mins}m`;
 
-  return overdue ? `${label} overdue` : `due in ${label}`;
+  return { label, overdue };
 }
 
 export function formatDateTime(iso: string): string {

@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { ticketCode } from "./format";
+import { generateReadablePassword, hashPassword, verifyPassword } from "./password";
 import { OWNING_TEAM, SLA_HOURS, THRESHOLDS } from "./config";
 import type {
   Category,
@@ -12,7 +13,8 @@ import type {
 
 interface VendorRow {
   id: number;
-  token: string;
+  username: string;
+  password_hash: string;
   name: string;
   phone: string;
   branches: string;
@@ -23,7 +25,7 @@ interface VendorRow {
 function vendorFromRow(row: VendorRow): Vendor {
   return {
     id: row.id,
-    token: row.token,
+    username: row.username,
     name: row.name,
     phone: row.phone,
     branches: JSON.parse(row.branches),
@@ -32,11 +34,27 @@ function vendorFromRow(row: VendorRow): Vendor {
   };
 }
 
-export function getVendorByToken(token: string): Vendor | null {
-  const row = db
-    .prepare("SELECT * FROM vendors WHERE token = ?")
-    .get(token) as VendorRow | undefined;
+export function getVendorById(id: number): Vendor | null {
+  const row = db.prepare("SELECT * FROM vendors WHERE id = ?").get(id) as VendorRow | undefined;
   return row ? vendorFromRow(row) : null;
+}
+
+/** Verifies credentials and returns the vendor, or null if either is wrong. */
+export function verifyVendorLogin(username: string, password: string): Vendor | null {
+  const row = db
+    .prepare("SELECT * FROM vendors WHERE username = ?")
+    .get(username.trim().toLowerCase()) as VendorRow | undefined;
+  if (!row || !verifyPassword(password, row.password_hash)) return null;
+  return vendorFromRow(row);
+}
+
+/** Generates a new random password for a vendor and returns it in the clear
+ * (this is the only time it's ever available in plaintext — only the hash
+ * is stored). Used by the account-manager tool to hand out/reset access. */
+export function resetVendorPassword(vendorId: number): string {
+  const newPassword = generateReadablePassword();
+  db.prepare("UPDATE vendors SET password_hash = ? WHERE id = ?").run(hashPassword(newPassword), vendorId);
+  return newPassword;
 }
 
 export function listVendors(): Vendor[] {
@@ -221,9 +239,10 @@ export function getTicketById(id: number): Ticket | null {
   return row ? ticketFromRow(row) : null;
 }
 
-export function reopenTicket(id: number): Ticket | null {
+export function reopenTicket(id: number, vendorId: number): Ticket | null {
   const ticket = getTicketById(id);
-  if (!ticket || ticket.status !== "resolved") return ticket;
+  if (!ticket || ticket.vendorId !== vendorId) return null;
+  if (ticket.status !== "resolved") return ticket;
 
   const newReopenedCount = ticket.reopenedCount + 1;
   const escalated = ticket.escalated || newReopenedCount > 1;
@@ -243,9 +262,10 @@ export function reopenTicket(id: number): Ticket | null {
   return getTicketById(id);
 }
 
-export function rateTicket(id: number, rating: number): Ticket | null {
+export function rateTicket(id: number, rating: number, vendorId: number): Ticket | null {
   const ticket = getTicketById(id);
-  if (!ticket || ticket.status !== "resolved") return ticket;
+  if (!ticket || ticket.vendorId !== vendorId) return null;
+  if (ticket.status !== "resolved") return ticket;
   db.prepare("UPDATE tickets SET rating = ? WHERE id = ?").run(rating, id);
   return getTicketById(id);
 }

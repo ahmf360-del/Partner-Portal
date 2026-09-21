@@ -13,7 +13,7 @@ export type TicketStatus = "received" | "in_progress" | "resolved";
 
 export interface Vendor {
   id: number;
-  token: string;
+  username: string;
   name: string;
   phone: string;
   branches: string[];
@@ -90,28 +90,17 @@ export interface Ticket {
   resolvedAt: string | null;
 }
 
-export const CATEGORY_LABEL: Record<Category, string> = {
-  finance: "Finance",
-  discounts: "Discounts & Offers",
-  tech: "Tech Support",
-  menu: "Menu & Content",
-  other: "Other",
-};
+// Display labels for these live in the i18n dictionary (category.*.label,
+// menu.changeType.*) since the portal is bilingual — these arrays just fix
+// the enumeration order for the UI.
+export const CATEGORIES: Category[] = ["finance", "discounts", "tech", "menu", "other"];
 
-export const CATEGORY_BLURB: Record<Category, string> = {
-  finance: "Payouts, invoices, proof of transfer, statements, reports",
-  discounts: "Promos, seasonal offers, weekend deals",
-  tech: "Tablet, printer, or app issues at your branch",
-  menu: "Add, remove, or update items on your menu",
-  other: "Anything else — we'll route it for you",
-};
-
-export const MENU_CHANGE_LABEL: Record<MenuChangeType, string> = {
-  availability: "Availability / stock toggle",
-  price_change: "Price change",
-  remove_temp: "Remove item — temporary",
-  remove_permanent: "Remove item — permanent",
-  add_item: "Add new item",
-  update_content: "Update description or photo",
-  reorder: "Reorder / recategorize menu",
-};
+export const MENU_CHANGE_TYPES: MenuChangeType[] = [
+  "availability",
+  "price_change",
+  "remove_temp",
+  "remove_permanent",
+  "add_item",
+  "update_content",
+  "reorder",
+];

@@ -58,3 +58,22 @@ body {
 h1, h2, h3, .font-display {
   font-family: var(--font-display), var(--font-sans), sans-serif;
 }
+
+/* Cairo covers both scripts once Arabic is active, so headings and body
+   text share one face instead of falling back mid-word. */
+:root[dir="rtl"] body {
+  font-family: var(--font-cairo), var(--font-sans), sans-serif;
+}
+
+:root[dir="rtl"] h1,
+:root[dir="rtl"] h2,
+:root[dir="rtl"] h3,
+:root[dir="rtl"] .font-display {
+  font-family: var(--font-cairo), var(--font-display), sans-serif;
+}
+
+:root[dir="rtl"] .font-mono {
+  font-family: var(--font-mono, ui-monospace), monospace;
+  direction: ltr;
+  unicode-bidi: isolate;
+}

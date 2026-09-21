@@ -1,34 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTicket, getVendorByToken, listTicketsForVendor } from "@/lib/tickets";
+import { createTicket, listTicketsForVendor } from "@/lib/tickets";
+import { getSessionVendorId } from "@/lib/session";
 import type { Category, TicketFields } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
-  const token = request.nextUrl.searchParams.get("token");
-  if (!token) return NextResponse.json({ error: "Missing token" }, { status: 400 });
+  const vendorId = getSessionVendorId(request);
+  if (!vendorId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const vendor = getVendorByToken(token);
-  if (!vendor) return NextResponse.json({ error: "Unknown link" }, { status: 404 });
-
-  const tickets = listTicketsForVendor(vendor.id);
+  const tickets = listTicketsForVendor(vendorId);
   return NextResponse.json({ tickets });
 }
 
 export async function POST(request: NextRequest) {
+  const vendorId = getSessionVendorId(request);
+  if (!vendorId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
   const body = (await request.json()) as {
-    token: string;
     branch: string;
     category: Category;
     fields: TicketFields;
   };
 
-  const vendor = getVendorByToken(body.token);
-  if (!vendor) return NextResponse.json({ error: "Unknown link" }, { status: 404 });
   if (!body.branch || !body.category) {
     return NextResponse.json({ error: "Missing branch or category" }, { status: 400 });
   }
 
   const result = createTicket({
-    vendorId: vendor.id,
+    vendorId,
     branch: body.branch,
     category: body.category,
     fields: body.fields ?? {},

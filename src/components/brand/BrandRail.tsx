@@ -1,11 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { Logo } from "./Logo";
+import { LocaleToggle, useLocale } from "@/components/i18n/LocaleProvider";
 
 // The wide-screen left panel used across the vendor flow and admin pages, so
 // a desktop browser gets a real layout instead of a narrow card floating in
 // a sea of blank page. Hidden below `lg` — phones keep the single-column
-// layout that was already here.
+// layout that was already here. In RTL, flexbox's row direction already
+// mirrors this to the right automatically (no extra classes needed).
 export function BrandRail({
   eyebrow,
   title,
@@ -17,6 +21,7 @@ export function BrandRail({
   subtitle?: string;
   children?: ReactNode;
 }) {
+  const { t } = useLocale();
   return (
     <div className="relative hidden w-[380px] shrink-0 flex-col justify-between overflow-hidden bg-brand px-10 py-12 lg:flex">
       <Image
@@ -25,10 +30,11 @@ export function BrandRail({
         width={200}
         height={200}
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-[420px] w-[420px] opacity-[0.08]"
+        className="pointer-events-none absolute end-[-64px] top-[-64px] h-[420px] w-[420px] opacity-[0.08]"
       />
-      <div className="relative z-10">
+      <div className="relative z-10 flex items-center justify-between">
         <Logo variant="onBrand" />
+        <LocaleToggle onBrand />
       </div>
       <div className="relative z-10">
         {eyebrow && <p className="text-xs font-semibold uppercase tracking-wide text-white/60">{eyebrow}</p>}
@@ -36,7 +42,7 @@ export function BrandRail({
         {subtitle && <p className="mt-3 text-sm text-white/75">{subtitle}</p>}
         {children && <div className="mt-8">{children}</div>}
       </div>
-      <p className="relative z-10 text-xs text-white/50">Partner self-service portal</p>
+      <p className="relative z-10 text-xs text-white/50">{t("rail.footer")}</p>
     </div>
   );
 }
