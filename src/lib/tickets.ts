@@ -7,7 +7,9 @@ import type {
   MenuLineItem,
   Ticket,
   TicketFields,
+  TicketMessage,
   TicketStatus,
+  TicketWithVendor,
   Vendor,
 } from "./types";
 
@@ -81,6 +83,48 @@ interface TicketRow {
   resolved_at: string | null;
 }
 
+interface MessageRow {
+  id: number;
+  ticket_id: number;
+  author_type: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}
+
+function messageFromRow(row: MessageRow): TicketMessage {
+  return {
+    id: row.id,
+    ticketId: row.ticket_id,
+    authorType: row.author_type as TicketMessage["authorType"],
+    authorName: row.author_name,
+    body: row.body,
+    createdAt: row.created_at,
+  };
+}
+
+export function getMessagesForTicket(ticketId: number): TicketMessage[] {
+  const rows = db
+    .prepare("SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC")
+    .all(ticketId) as MessageRow[];
+  return rows.map(messageFromRow);
+}
+
+export function addMessage(
+  ticketId: number,
+  authorType: TicketMessage["authorType"],
+  authorName: string,
+  body: string
+): TicketMessage {
+  const createdAt = new Date().toISOString();
+  const result = db
+    .prepare(
+      "INSERT INTO ticket_messages (ticket_id, author_type, author_name, body, created_at) VALUES (?, ?, ?, ?, ?)"
+    )
+    .run(ticketId, authorType, authorName, body, createdAt);
+  return { id: result.lastInsertRowid as number, ticketId, authorType, authorName, body, createdAt };
+}
+
 function ticketFromRow(row: TicketRow): Ticket {
   return {
     id: row.id,
@@ -99,6 +143,7 @@ function ticketFromRow(row: TicketRow): Ticket {
     createdAt: row.created_at,
     slaDueAt: row.sla_due_at,
     resolvedAt: row.resolved_at,
+    messages: getMessagesForTicket(row.id),
   };
 }
 
@@ -267,5 +312,55 @@ export function rateTicket(id: number, rating: number, vendorId: number): Ticket
   if (!ticket || ticket.vendorId !== vendorId) return null;
   if (ticket.status !== "resolved") return ticket;
   db.prepare("UPDATE tickets SET rating = ? WHERE id = ?").run(rating, id);
+  return getTicketById(id);
+}
+
+function withVendorName(ticket: Ticket): TicketWithVendor {
+  const vendor = getVendorById(ticket.vendorId);
+  return { ...ticket, vendorName: vendor?.name ?? "Unknown vendor" };
+}
+
+/** All tickets routed to a team's queue — every status, newest first. Staff
+ * triage by status/urgency themselves rather than the API pre-filtering. */
+export function listTicketsForTeam(team: string): TicketWithVendor[] {
+  const rows = db
+    .prepare("SELECT * FROM tickets WHERE owning_team = ? ORDER BY created_at DESC")
+    .all(team) as TicketRow[];
+  return rows.map(ticketFromRow).map(withVendorName);
+}
+
+/** Ownership-scoped read: returns null (not the ticket) if it belongs to a
+ * different team, so a staff account can't view another team's ticket by
+ * guessing an id. */
+export function getTicketForTeam(id: number, team: string): TicketWithVendor | null {
+  const ticket = getTicketById(id);
+  if (!ticket || ticket.owningTeam !== team) return null;
+  return withVendorName(ticket);
+}
+
+/** A staff reply: posts a message (if any body given) and/or transitions
+ * status — replying to an untouched ticket moves it to "in progress";
+ * `resolve: true` closes it outright. Scoped to the staff member's own team. */
+export function replyToTicket(
+  id: number,
+  team: string,
+  authorName: string,
+  body: string | null,
+  resolve: boolean
+): Ticket | null {
+  const ticket = getTicketForTeam(id, team);
+  if (!ticket) return null;
+
+  if (body) addMessage(id, "staff", authorName, body);
+
+  if (resolve) {
+    db.prepare("UPDATE tickets SET status = 'resolved', resolved_at = ? WHERE id = ?").run(
+      new Date().toISOString(),
+      id
+    );
+  } else if (ticket.status === "received") {
+    db.prepare("UPDATE tickets SET status = 'in_progress' WHERE id = ?").run(id);
+  }
+
   return getTicketById(id);
 }

@@ -88,6 +88,28 @@ export interface Ticket {
   createdAt: string;
   slaDueAt: string;
   resolvedAt: string | null;
+  messages: TicketMessage[];
+}
+
+/** A ticket as staff see it in a queue — with the vendor identified by name. */
+export interface TicketWithVendor extends Ticket {
+  vendorName: string;
+}
+
+export interface Staff {
+  id: number;
+  username: string;
+  name: string;
+  team: string;
+}
+
+export interface TicketMessage {
+  id: number;
+  ticketId: number;
+  authorType: "staff" | "vendor";
+  authorName: string;
+  body: string;
+  createdAt: string;
 }
 
 // Display labels for these live in the i18n dictionary (category.*.label,

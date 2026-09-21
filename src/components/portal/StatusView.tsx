@@ -134,6 +134,18 @@ export function StatusView() {
               </span>
             </div>
 
+            {tk.messages.length > 0 && (
+              <div className="mt-3 flex flex-col gap-1.5 border-t border-line pt-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{t("status.replies")}</p>
+                {tk.messages.map((m) => (
+                  <div key={m.id} className="rounded-lg bg-brand-soft/25 px-3 py-2 text-sm">
+                    <p className="text-xs font-semibold text-ink-soft">{t("status.teamReply")} · {formatDateTime(m.createdAt)}</p>
+                    <p className="mt-0.5">{m.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
               {tk.status === "resolved" ? (
                 <Stars ticket={tk} onRate={(r) => rate(tk.id, r)} />

@@ -73,6 +73,23 @@ retryOnBusy(() => db.exec(`
     sla_due_at TEXT NOT NULL,
     resolved_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS staff (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    name TEXT NOT NULL,
+    team TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ticket_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(id),
+    author_type TEXT NOT NULL,
+    author_name TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
 `));
 
 function seedVendors() {
@@ -105,4 +122,24 @@ function seedVendors() {
   });
 }
 
+function seedStaff() {
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO staff (username, password_hash, name, team)
+    VALUES (@username, @passwordHash, @name, @team)
+  `);
+
+  const accounts = [
+    { username: "finance", name: "Finance Team", team: "Finance queue" },
+    { username: "growth", name: "Commercial / Growth Team", team: "Commercial / Growth" },
+    { username: "ops", name: "Ops / Tech Support Team", team: "Ops / Tech support" },
+    { username: "content", name: "Content Team", team: "Content queue" },
+    { username: "triage", name: "Triage Team", team: "Triage" },
+  ];
+
+  for (const a of accounts) {
+    insert.run({ ...a, passwordHash: hashPassword(`${a.username}-2026`) });
+  }
+}
+
 retryOnBusy(seedVendors);
+retryOnBusy(seedStaff);

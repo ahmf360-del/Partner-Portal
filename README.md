@@ -5,8 +5,10 @@ a username and password, picks a branch and a category, fills a form that adapts
 picked, and gets a ticket ID plus a status page they can return to any time. Bilingual — English
 and Arabic (with RTL layout) on the same URL, switchable in-page.
 
-This is the **vendor side only** (build order steps 1–2). The internal team queues, SLA-breach
-escalation dashboard, and real WhatsApp/SMS delivery are follow-up work — see "What's mocked" below.
+Now covers both sides: the vendor flow (steps 1–2) **and** the internal team queues (step 3) where
+Finance, Commercial/Growth, Ops/Tech, Content, and Triage open, view, and reply to what's routed to
+them. The AM escalation dashboard and real WhatsApp/SMS delivery are still follow-up work — see
+"What's mocked" below.
 
 ## Run it
 
@@ -50,6 +52,29 @@ account manager hands out or resets access, since there's no self-serve signup. 
 shared password (not real multi-admin auth): set `ADMIN_PASSWORD` in your environment before
 deploying anywhere real; locally it falls back to `breadfast-demo` (see `src/lib/adminAuth.ts`).
 
+## Team queues (`/team`)
+
+Where the five owning teams actually work tickets — separate from `/admin`, which only manages
+vendor access. Each department signs in with its own username/password (its own session, so a
+vendor and a staff member can be logged in on the same browser without clashing) and sees only its
+own queue (`owning_team` on the ticket, scoped server-side — a Content account can't fetch a
+Finance ticket by guessing an id). Demo accounts (`src/lib/db.ts`, pattern `<username>-2026`):
+
+| Username  | Password        | Team                  |
+| --------- | --------------- | ---------------------- |
+| `finance` | `finance-2026`  | Finance queue           |
+| `growth`  | `growth-2026`   | Commercial / Growth     |
+| `ops`     | `ops-2026`      | Ops / Tech support      |
+| `content` | `content-2026`  | Content queue           |
+| `triage`  | `triage-2026`   | Triage                  |
+
+The queue lists every ticket for that team (filterable: Open / Escalated / Resolved / All, sorted
+escalated-first then by SLA urgency), a click opens the full ticket — vendor, branch, every field
+submitted, and the reply thread. Staff can send a reply (the vendor sees it on their own status
+page the next time they open it), mark a ticket resolved with or without a reply, and an untouched
+ticket automatically moves from "received" to "in progress" on the first reply. Like `/admin`,
+this tool is English-only by design.
+
 ## What's real
 
 - Full vendor flow: sign in → branch → category → dynamic form → submit → ticket ID → track/reopen/rate.
@@ -59,7 +84,10 @@ deploying anywhere real; locally it falls back to `breadfast-demo` (see `src/lib
   flags (vendor asked for the AM, commercial terms, reopened more than once) all run for real
   against SQLite.
 - Ticket ownership is checked server-side against the session on every read/reopen/rate — a vendor
-  can't view or act on another vendor's tickets by guessing an ID.
+  can't view or act on another vendor's tickets by guessing an ID, and the same holds per-team on
+  the staff side.
+- Team queues + replies: staff see their team's tickets in full, reply (vendor sees it), and
+  resolve — `src/lib/tickets.ts` → `listTicketsForTeam`, `replyToTicket`.
 - Every network call shows a real error message on failure instead of failing silently.
 
 ## Brand identity
@@ -77,17 +105,20 @@ becomes available later, swap the PNG for the SVG in that same file — nothing 
 - **File uploads** — photo/screenshot inputs capture a filename only; no storage backend is connected.
 - **Discount % and price-change % auto-apply thresholds** (`src/lib/config.ts`) — placeholder
   numbers pending the business decision flagged in the workflow design doc.
-- **Internal queue views, AM dashboard, SLA-breach escalation job** — not built yet; this repo only
-  covers what the vendor sees.
+- **AM escalation dashboard, SLA-breach alerting job** — not built yet; escalation *flags* on a
+  ticket are real (see "What's real"), there's just no dedicated AM-facing view for them yet.
 
 ## Structure
 
 ```
 src/lib/         DB (better-sqlite3), ticket/SLA/routing logic, session, passwords, formatting
+src/lib/staff.ts     Staff auth (separate table/session from vendors)
 src/lib/i18n/    Translation dictionary (English + Arabic)
-src/app/api/     Route handlers: auth/login|logout, tickets, tickets/[id]/reopen|rate, admin/*
-src/app/page.tsx  Session-aware: login form or the wizard
-src/components/portal/  Wizard, per-category forms, status/tracking view
-src/components/i18n/    Locale context, hook, and EN/AR toggle
+src/app/api/     Route handlers: auth/*, staff/*, tickets/*, admin/*
+src/app/page.tsx     Vendor: session-aware login form or the wizard
+src/app/team/page.tsx  Staff: session-aware login form or the queue
+src/components/portal/  Vendor wizard, per-category forms, status/tracking view
+src/components/staff/   Staff queue (list + ticket detail + reply), read-only field renderer
+src/components/i18n/    Locale context, hook, and EN/AR toggle (vendor side only)
 src/components/brand/   Logo (renders public/brand/logo-mark.png), the two-column BrandRail layout
 ```
