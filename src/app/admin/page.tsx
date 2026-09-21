@@ -15,22 +15,23 @@ export default async function AdminPage() {
   const vendors = listVendors();
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col gap-6 px-5 py-10">
+    <div className="mx-auto flex min-h-dvh max-w-5xl flex-col gap-6 px-5 py-10 lg:px-10">
       <Logo />
       <div>
         <h1 className="font-display text-2xl font-bold">Vendor link directory</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Each row is one vendor&apos;s persistent link — send it once via WhatsApp/SMS; it stays valid
+        <p className="mt-1 max-w-2xl text-sm text-ink-soft">
+          Each card is one vendor&apos;s persistent link — send it once via WhatsApp/SMS; it stays valid
           for every future request. This page is password-gated and not something vendors ever see.
         </p>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {vendors.map((v) => (
-          <Card key={v.token} className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <Card key={v.token} className="flex flex-col gap-3 p-4">
             <div>
               <p className="font-semibold">{v.name}</p>
-              <p className="text-xs text-ink-soft">{v.branches.join(" · ")} · {v.phone}</p>
+              <p className="text-xs text-ink-soft">{v.branches.join(" · ")}</p>
+              <p className="text-xs text-ink-soft">{v.phone}</p>
             </div>
             <CopyLink token={v.token} />
           </Card>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Card, TextInput } from "@/components/ui/primitives";
 import { Logo } from "@/components/brand/Logo";
+import { BrandRail } from "@/components/brand/BrandRail";
 
 export function VerifyGate({
   token,
@@ -64,11 +65,20 @@ export function VerifyGate({
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-5 py-10">
-      <Logo />
+    <div className="flex min-h-dvh">
+      <BrandRail
+        eyebrow="Welcome back"
+        title={`Hi, ${vendorName}`}
+        subtitle="One quick check and you're straight into your requests — finance, discounts, tech support, and menu changes, all from this one link."
+      />
+      <div className="flex flex-1 flex-col justify-center px-5 py-10 lg:px-16">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-6 lg:max-w-lg">
+      <div className="lg:hidden">
+        <Logo />
+      </div>
       <Card className="p-6">
-        <h1 className="font-display text-xl font-bold">Hi, {vendorName} 👋</h1>
-        <p className="mt-1 text-sm text-ink-soft">
+        <h1 className="font-display text-xl font-bold lg:hidden">Hi, {vendorName} 👋</h1>
+        <p className="mt-1 text-sm text-ink-soft lg:mt-0">
           Confirm it&apos;s you before we open your requests. We&apos;ll text a code to{" "}
           <span className="font-medium text-ink">{maskedPhone}</span>.
         </p>
@@ -103,6 +113,8 @@ export function VerifyGate({
 
         {error && <p className="mt-3 text-xs font-medium text-critical">{error}</p>}
       </Card>
+      </div>
+      </div>
     </div>
   );
 }

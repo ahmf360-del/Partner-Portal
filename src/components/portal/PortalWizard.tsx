@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { BrandRail, RailSteps } from "@/components/brand/BrandRail";
 import { VerifyGate } from "@/components/portal/VerifyGate";
 import { StatusView } from "@/components/portal/StatusView";
+import { CategoryIcon } from "@/components/portal/CategoryIcon";
 import { DiscountsForm, FinanceForm, MenuForm, OtherForm, TechForm } from "@/components/portal/CategoryForms";
 import { Button, Card, Pill } from "@/components/ui/primitives";
 import { CATEGORY_BLURB, CATEGORY_LABEL } from "@/lib/types";
@@ -15,14 +17,6 @@ interface VendorSummary {
   maskedPhone: string;
   accountManagerName: string;
 }
-
-const CATEGORY_ICON: Record<Category, string> = {
-  finance: "💳",
-  discounts: "🏷️",
-  tech: "📟",
-  menu: "🍽️",
-  other: "✉️",
-};
 
 type Step = "branch" | "category" | "form" | "done";
 
@@ -112,9 +106,27 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
     return <VerifyGate token={token} vendorName={vendor.name} maskedPhone={vendor.maskedPhone} onVerified={() => setVerified(true)} />;
   }
 
+  const stepOrder: Step[] = vendor.branches.length > 1 ? ["branch", "category", "form", "done"] : ["category", "form", "done"];
+  const stepLabel: Record<Step, string> = { branch: "Choose branch", category: "Pick a category", form: "Add details", done: "Submitted" };
+  const currentIndex = stepOrder.indexOf(step);
+  const railSteps = stepOrder.map((s, i) => ({
+    label: stepLabel[s],
+    state: i < currentIndex ? "done" as const : i === currentIndex ? "current" as const : "upcoming" as const,
+  }));
+
   return (
-    <div className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-5 py-8">
-      <header className="flex items-center justify-between">
+    <div className="flex min-h-dvh">
+      <BrandRail
+        eyebrow={vendor.accountManagerName}
+        title={vendor.name}
+        subtitle={tab === "tickets" ? "Every request you've filed, tracked in one place." : "A few quick steps and we'll route this to the right team automatically."}
+      >
+        {tab === "new" && <RailSteps steps={railSteps} />}
+      </BrandRail>
+
+      <div className={`flex flex-1 flex-col px-5 py-8 lg:px-16 lg:py-12 ${tab === "new" ? "lg:justify-center" : ""}`}>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:max-w-4xl">
+      <header className="flex items-center justify-between lg:hidden">
         <Logo />
         <div className="text-right">
           <p className="text-sm font-semibold">{vendor.name}</p>
@@ -122,7 +134,7 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
         </div>
       </header>
 
-      <nav className="flex gap-1 rounded-xl bg-brand-soft/40 p-1">
+      <nav className="flex gap-1 rounded-xl bg-brand-soft/40 p-1 lg:max-w-sm">
         {(["new", "tickets"] as const).map((t) => (
           <button
             key={t}
@@ -172,9 +184,11 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
                       setCategory(c);
                       setStep("form");
                     }}
-                    className="flex flex-col items-start gap-1 rounded-xl border border-line bg-white p-4 text-left hover:border-brand hover:shadow-sm"
+                    className="flex flex-col items-start gap-2.5 rounded-xl border border-line bg-white p-4 text-left hover:border-brand hover:shadow-sm"
                   >
-                    <span className="text-2xl">{CATEGORY_ICON[c]}</span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+                      <CategoryIcon category={c} className="h-5 w-5" />
+                    </span>
                     <span className="font-semibold">{CATEGORY_LABEL[c]}</span>
                     <span className="text-xs text-ink-soft">{CATEGORY_BLURB[c]}</span>
                   </button>
@@ -188,8 +202,10 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
               <button onClick={() => setStep("category")} className="mb-3 text-xs font-semibold text-ink-soft hover:text-brand">
                 ← Back
               </button>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{CATEGORY_ICON[category]}</span>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
+                  <CategoryIcon category={category} className="h-[18px] w-[18px]" />
+                </span>
                 <h2 className="font-display text-lg font-bold">{CATEGORY_LABEL[category]}</h2>
               </div>
 
@@ -254,6 +270,8 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }
