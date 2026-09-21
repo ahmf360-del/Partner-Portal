@@ -24,7 +24,14 @@ function PhotoField({ value, onChange, label = "Photo" }: { value?: string; onCh
   );
 }
 
+const FINANCE_NEEDS_REFERENCE = ["payout_delay", "invoice_dispute", "commission_question", "proof_of_transfer"];
+const FINANCE_NEEDS_PERIOD = ["proof_of_transfer", "soa_request", "report_request"];
+
 export function FinanceForm({ fields, update }: FormProps) {
+  const needsReference = FINANCE_NEEDS_REFERENCE.includes(fields.issueType ?? "");
+  const needsPeriod = FINANCE_NEEDS_PERIOD.includes(fields.issueType ?? "");
+  const needsReportType = fields.issueType === "report_request";
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Issue type" required>
@@ -37,16 +44,52 @@ export function FinanceForm({ fields, update }: FormProps) {
           <option value="payout_delay">Payout delay</option>
           <option value="invoice_dispute">Invoice dispute</option>
           <option value="commission_question">Commission question</option>
+          <option value="proof_of_transfer">Proof of transfer</option>
+          <option value="soa_request">Statement of account (SOA)</option>
+          <option value="report_request">Report request</option>
         </Select>
       </Field>
-      <Field label="Amount (EGP)">
-        <TextInput type="number" min={0} value={fields.amount ?? ""} onChange={(e) => update({ amount: e.target.value })} placeholder="0.00" />
-      </Field>
-      <Field label="Order or invoice ID" required>
-        <TextInput value={fields.orderOrInvoiceId ?? ""} onChange={(e) => update({ orderOrInvoiceId: e.target.value })} placeholder="e.g. INV-88213" required />
-      </Field>
+
+      {needsReportType && (
+        <Field label="Report type" required>
+          <Select value={fields.reportType ?? ""} onChange={(e) => update({ reportType: e.target.value as TicketFields["reportType"] })} required>
+            <option value="" disabled>Select one</option>
+            <option value="sales_summary">Sales summary</option>
+            <option value="payout_history">Payout history</option>
+            <option value="reconciliation">Reconciliation report</option>
+            <option value="other">Other</option>
+          </Select>
+        </Field>
+      )}
+
+      {needsReference && (
+        <>
+          <Field label="Amount (EGP)" hint={fields.issueType === "proof_of_transfer" ? "The amount you're expecting proof for" : undefined}>
+            <TextInput type="number" min={0} value={fields.amount ?? ""} onChange={(e) => update({ amount: e.target.value })} placeholder="0.00" />
+          </Field>
+          <Field label={fields.issueType === "proof_of_transfer" ? "Payout or transfer reference" : "Order or invoice ID"} required>
+            <TextInput value={fields.orderOrInvoiceId ?? ""} onChange={(e) => update({ orderOrInvoiceId: e.target.value })} placeholder="e.g. INV-88213" required />
+          </Field>
+        </>
+      )}
+
+      {needsPeriod && (
+        <>
+          <Field label="Period start" required hint={fields.issueType === "soa_request" ? "Statement covers this date range" : undefined}>
+            <TextInput type="date" value={fields.dateRangeStart ?? ""} onChange={(e) => update({ dateRangeStart: e.target.value })} required />
+          </Field>
+          <Field label="Period end" required>
+            <TextInput type="date" value={fields.dateRangeEnd ?? ""} onChange={(e) => update({ dateRangeEnd: e.target.value })} required />
+          </Field>
+        </>
+      )}
+
       <div className="sm:col-span-2">
-        <PhotoField value={fields.photoName} onChange={(photoName) => update({ photoName })} label="Screenshot" />
+        <PhotoField
+          value={fields.photoName}
+          onChange={(photoName) => update({ photoName })}
+          label={needsReference ? "Screenshot" : "Attachment (optional)"}
+        />
       </div>
     </div>
   );

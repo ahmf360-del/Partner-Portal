@@ -18,6 +18,10 @@ export const db =
   globalForDb.bfDb ?? new Database(path.join(dataDir, "portal.db"));
 globalForDb.bfDb = db;
 
+// Next builds/serverless cold starts can open this file from several
+// processes at once; without a busy timeout, the loser of that race gets a
+// hard SQLITE_BUSY instead of just waiting a moment for the lock.
+db.pragma("busy_timeout = 5000");
 db.pragma("journal_mode = WAL");
 
 db.exec(`
@@ -52,11 +56,11 @@ db.exec(`
 `);
 
 function seedVendors() {
-  const count = db.prepare("SELECT COUNT(*) as n FROM vendors").get() as { n: number };
-  if (count.n > 0) return;
-
+  // INSERT OR IGNORE on the unique token, rather than a count-then-insert
+  // check, so two processes seeding at once (concurrent cold starts) can't
+  // race each other into a UNIQUE constraint failure.
   const insert = db.prepare(`
-    INSERT INTO vendors (token, name, phone, branches, portfolio_tier, account_manager_name)
+    INSERT OR IGNORE INTO vendors (token, name, phone, branches, portfolio_tier, account_manager_name)
     VALUES (@token, @name, @phone, @branches, @portfolioTier, @accountManagerName)
   `);
 

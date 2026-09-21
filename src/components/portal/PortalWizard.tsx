@@ -29,8 +29,13 @@ type Step = "branch" | "category" | "form" | "done";
 function requiredFieldsOk(category: Category, branch: string, fields: TicketFields): boolean {
   if (!branch) return false;
   switch (category) {
-    case "finance":
-      return !!fields.issueType && !!fields.orderOrInvoiceId;
+    case "finance": {
+      if (!fields.issueType) return false;
+      if (fields.issueType === "report_request") return !!fields.reportType && !!fields.dateRangeStart && !!fields.dateRangeEnd;
+      if (fields.issueType === "soa_request") return !!fields.dateRangeStart && !!fields.dateRangeEnd;
+      if (fields.issueType === "proof_of_transfer") return !!fields.orderOrInvoiceId && !!fields.dateRangeStart && !!fields.dateRangeEnd;
+      return !!fields.orderOrInvoiceId;
+    }
     case "discounts":
       return !!fields.campaignType && !!fields.reason && (fields.campaignType === "commercial_terms" || !!fields.discountPercent);
     case "tech":

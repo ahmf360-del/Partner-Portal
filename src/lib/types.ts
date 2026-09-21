@@ -42,9 +42,16 @@ export interface MenuLineItem {
 
 export interface TicketFields {
   // Finance
-  issueType?: "payout_delay" | "invoice_dispute" | "commission_question";
+  issueType?:
+    | "payout_delay"
+    | "invoice_dispute"
+    | "commission_question"
+    | "proof_of_transfer"
+    | "soa_request"
+    | "report_request";
   amount?: string;
   orderOrInvoiceId?: string;
+  reportType?: "sales_summary" | "payout_history" | "reconciliation" | "other";
   // Discounts
   campaignType?: "seasonal_promo" | "weekend_offer" | "flash_sale" | "commercial_terms";
   discountPercent?: string;
@@ -92,7 +99,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 };
 
 export const CATEGORY_BLURB: Record<Category, string> = {
-  finance: "Payouts, invoices, commission questions",
+  finance: "Payouts, invoices, proof of transfer, statements, reports",
   discounts: "Promos, seasonal offers, weekend deals",
   tech: "Tablet, printer, or app issues at your branch",
   menu: "Add, remove, or update items on your menu",
