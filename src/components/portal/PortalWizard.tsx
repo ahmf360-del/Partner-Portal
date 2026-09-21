@@ -50,6 +50,7 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
   const [category, setCategory] = useState<Category | null>(null);
   const [fields, setFields] = useState<TicketFields>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<{ code: string; autoApplied: boolean; escalated: boolean } | null>(null);
 
   useEffect(() => {
@@ -73,22 +74,32 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
     setCategory(null);
     setFields({});
     setResult(null);
+    setSubmitError(null);
     setTab("new");
   }
 
   async function submit() {
     if (!category) return;
     setSubmitting(true);
-    const res = await fetch("/api/tickets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, branch, category, fields }),
-    });
-    const data = await res.json();
-    setSubmitting(false);
-    if (!res.ok) return;
-    setResult({ code: data.ticket.code, autoApplied: data.autoApplied, escalated: data.escalated });
-    setStep("done");
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, branch, category, fields }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Couldn't submit that — please try again.");
+        return;
+      }
+      setResult({ code: data.ticket.code, autoApplied: data.autoApplied, escalated: data.escalated });
+      setStep("done");
+    } catch {
+      setSubmitError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (verified === null) return null;
@@ -198,6 +209,12 @@ export function PortalWizard({ token, vendor }: { token: string; vendor: VendorS
                   <span className="text-xs text-ink-soft">Use this if it&apos;s urgent or the usual process doesn&apos;t fit.</span>
                 </span>
               </label>
+
+              {submitError && (
+                <p className="mt-4 rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">
+                  {submitError}
+                </p>
+              )}
 
               <Button
                 className="mt-5 w-full"

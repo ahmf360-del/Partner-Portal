@@ -41,11 +41,18 @@ function Stars({ ticket, onRate }: { ticket: Ticket; onRate: (rating: number) =>
 export function StatusView({ token }: { token: string }) {
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/tickets?token=${token}`);
-    const data = await res.json();
-    setTickets(data.tickets ?? []);
+    try {
+      const res = await fetch(`/api/tickets?token=${token}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setTickets(data.tickets ?? []);
+      setError(null);
+    } catch {
+      setError("Couldn't load your tickets — check your connection and try again.");
+    }
   }, [token]);
 
   useEffect(() => {
@@ -56,24 +63,40 @@ export function StatusView({ token }: { token: string }) {
 
   async function reopen(id: number) {
     setBusyId(id);
-    await fetch(`/api/tickets/${id}/reopen`, { method: "POST" });
-    await load();
-    setBusyId(null);
+    try {
+      const res = await fetch(`/api/tickets/${id}/reopen`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      await load();
+    } catch {
+      setError("Couldn't reopen that ticket — try again in a moment.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function rate(id: number, rating: number) {
     setBusyId(id);
-    await fetch(`/api/tickets/${id}/rate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating }),
-    });
-    await load();
-    setBusyId(null);
+    try {
+      const res = await fetch(`/api/tickets/${id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+      if (!res.ok) throw new Error();
+      await load();
+    } catch {
+      setError("Couldn't save your rating — try again in a moment.");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   if (tickets === null) {
-    return <p className="text-sm text-ink-soft">Loading your tickets…</p>;
+    return (
+      <p className="text-sm text-ink-soft">
+        {error ?? "Loading your tickets…"}
+      </p>
+    );
   }
 
   if (tickets.length === 0) {
@@ -86,6 +109,9 @@ export function StatusView({ token }: { token: string }) {
 
   return (
     <div className="grid gap-3">
+      {error && (
+        <p className="rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">{error}</p>
+      )}
       {tickets.map((t) => (
         <Card key={t.id} className="p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">

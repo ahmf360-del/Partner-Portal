@@ -24,35 +24,43 @@ export function VerifyGate({
   async function sendCode() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/otp/request", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) return setError(data.error ?? "Couldn't send a code");
-    setSent(true);
-    setDevCode(data.devCode);
+    try {
+      const res = await fetch("/api/otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok) return setError(data.error ?? "Couldn't send a code");
+      setSent(true);
+      setDevCode(data.devCode);
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function verify() {
     setLoading(true);
     setError(null);
-    const res = await fetch("/api/otp/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, code }),
-    });
-    setLoading(false);
-    if (!res.ok) {
-      const data = await res.json();
-      return setError(data.error ?? "That code didn't work");
-    }
     try {
-      localStorage.setItem(`bf_verified_${token}`, "1");
-    } catch {}
-    onVerified();
+      const res = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) return setError(data.error ?? "That code didn't work");
+      try {
+        localStorage.setItem(`bf_verified_${token}`, "1");
+      } catch {}
+      onVerified();
+    } catch {
+      setError("Couldn't reach the server — check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

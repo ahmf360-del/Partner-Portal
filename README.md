@@ -14,11 +14,19 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` — it lists demo vendor links (`/p/el-zaeem`, `/p/cafe-nour`). In
-production each vendor gets one persistent link sent once via WhatsApp; there's no separate login.
+Open `http://localhost:3000` — the vendor links themselves aren't listed there (see "Link
+directory" below); the demo ones are `/p/el-zaeem` and `/p/cafe-nour`. In production each vendor
+gets one persistent link sent once via WhatsApp; there's no separate login.
 
 Data lives in a local SQLite file at `data/portal.db`, created and seeded automatically on first
 run (gitignored — delete it to reset the demo data).
+
+## Link directory (`/admin`)
+
+Password-gated page listing every vendor's persistent link with a one-tap copy button — this is
+how an account manager would actually get a link to send. Gated by a single shared password (not
+real multi-admin auth): set `ADMIN_PASSWORD` in your environment before deploying anywhere real;
+locally it falls back to `breadfast-demo` (see `src/lib/adminAuth.ts`).
 
 ## What's real
 
@@ -28,6 +36,10 @@ run (gitignored — delete it to reset the demo data).
 - Auto-apply vs. human-review logic, SLA due dates, owning-team assignment, and the escalation
   flags (vendor asked for the AM, commercial terms, reopened more than once) all run for real
   against SQLite.
+- The public homepage doesn't list vendor tokens (fixed after an earlier draft exposed them) —
+  links only surface through the password-gated `/admin` directory.
+- Every network call (submit, reopen, rate, OTP request/verify, ticket list) shows a real error
+  message on failure instead of failing silently.
 
 ## Brand identity
 
