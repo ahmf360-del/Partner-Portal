@@ -15,7 +15,6 @@ type Filter = "open" | "escalated" | "resolved" | "all";
 
 function escalationReasonText(t: (k: TranslationKey) => string, reason: string | null): string | null {
   if (reason === "vendor_requested") return t("team.escalationReason.vendor_requested");
-  if (reason === "commercial_terms") return t("team.escalationReason.commercial_terms");
   if (reason === "reopened_multiple") return t("team.escalationReason.reopened_multiple");
   return reason;
 }

@@ -10,6 +10,10 @@ Finance, Commercial/Growth, Ops/Tech, Content, and Triage open, view, and reply 
 them. The AM escalation dashboard and real WhatsApp/SMS delivery are still follow-up work — see
 "What's mocked" below.
 
+The account manager is deliberately not the first point of contact: a vendor's request always goes
+to the owning team first, and only shows an "Escalate to account manager" option on the tracking
+page once it's still open and nobody's replied — not as an upfront bypass on the submission form.
+
 ## Run it
 
 ```bash
@@ -77,14 +81,27 @@ page the next time they open it), mark a ticket resolved with or without a reply
 ticket automatically moves from "received" to "in progress" on the first reply. Bilingual and using
 the same BrandRail split-screen layout as the vendor side — same design system, same EN/AR toggle.
 
+## Category fields
+
+- **Finance**: payout delay, payment timeline, changing bank details (new bank details go to a
+  required text field, applied only after finance verifies), proof of transfer, statement of
+  account (SOA).
+- **Discounts & offers**: discount %, start/end date, offer details (what the offer is and why) —
+  auto-approved at or under the threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
+- **Tech support**: device/branch, description, optional screenshot.
+- **Menu & Content**: item price change, remove item permanently, add a new item, full menu price
+  change, or update description/photo — per line item, multiple items per ticket. Full menu price
+  change and update description/photo both prompt to attach a file (new price list, or the new
+  photo).
+
 ## What's real
 
 - Full vendor flow: sign in → branch → category → dynamic form → submit → ticket ID → track/reopen/rate.
 - Menu & Content supports multiple line items per ticket, each independently routed by risk
   (`src/lib/tickets.ts` → `resolveMenuItem`), matching the design doc's Fig. 3.
 - Auto-apply vs. human-review logic, SLA due dates, owning-team assignment, and the escalation
-  flags (vendor asked for the AM, commercial terms, reopened more than once) all run for real
-  against SQLite.
+  flags (vendor escalated a stalled ticket, reopened more than once) all run for real against
+  SQLite.
 - Ticket ownership is checked server-side against the session on every read/reopen/rate — a vendor
   can't view or act on another vendor's tickets by guessing an ID, and the same holds per-team on
   the staff side.

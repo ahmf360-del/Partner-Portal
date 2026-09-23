@@ -28,8 +28,6 @@ function MenuItemCard({ item, index }: { item: MenuLineItem; index: number }) {
       <Row label={t("menu.description")} value={item.description} />
       <Row label={t("menu.availabilityWindow")} value={item.availabilityWindow} />
       <Row label={t("menu.removalReason")} value={item.removalReason ? t(`menu.removalReason.${item.removalReason}`) : undefined} />
-      <Row label={t("menu.expectedReturnDate")} value={item.expectedReturnDate} />
-      <Row label={t("team.notes")} value={item.reorderNotes} />
       <Row label={t("team.attachment")} value={item.photoName} />
       <div className="mt-1.5 flex gap-2">
         {item.autoApplied != null && (
@@ -50,9 +48,9 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
       return (
         <div>
           <Row label={t("finance.issueType")} value={fields.issueType ? t(`finance.issueType.${fields.issueType}`) : undefined} />
-          <Row label={t("finance.reportType")} value={fields.reportType ? t(`finance.reportType.${fields.reportType}`) : undefined} />
           <Row label={t("finance.amount")} value={fields.amount ? `EGP ${fields.amount}` : undefined} />
           <Row label={t("finance.reference")} value={fields.orderOrInvoiceId} />
+          <Row label={t("finance.bankDetails")} value={fields.bankDetails} />
           <Row label={t("finance.periodStart")} value={fields.dateRangeStart} />
           <Row label={t("finance.periodEnd")} value={fields.dateRangeEnd} />
           <Row label={t("team.attachment")} value={fields.photoName} />
@@ -61,7 +59,6 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
     case "discounts":
       return (
         <div>
-          <Row label={t("discounts.campaignType")} value={fields.campaignType ? t(`discounts.campaignType.${fields.campaignType}`) : undefined} />
           <Row label={t("discounts.percent")} value={fields.discountPercent ? `${fields.discountPercent}%` : undefined} />
           <Row label={t("discounts.startDate")} value={fields.dateRangeStart} />
           <Row label={t("discounts.endDate")} value={fields.dateRangeEnd} />
@@ -72,7 +69,6 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
       return (
         <div>
           <Row label={t("tech.deviceOrBranch")} value={fields.deviceOrBranch} />
-          <Row label={t("tech.urgency")} value={fields.urgency ? t(`tech.urgency.${fields.urgency}`) : undefined} />
           <Row label={t("tech.description")} value={fields.issueDescription} />
           <Row label={t("team.attachment")} value={fields.photoName} />
         </div>

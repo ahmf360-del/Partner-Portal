@@ -154,10 +154,6 @@ function addHours(hours: number): string {
 /** Decides auto-apply + SLA hours for a single Menu & Content line item. */
 function resolveMenuItem(item: MenuLineItem): { autoApplied: boolean; slaHours: number } {
   switch (item.changeType) {
-    case "availability":
-      return { autoApplied: true, slaHours: SLA_HOURS.menu.availability };
-    case "remove_temp":
-      return { autoApplied: true, slaHours: SLA_HOURS.menu.remove_temp };
     case "price_change": {
       const current = parseFloat(item.currentPrice ?? "");
       const next = parseFloat(item.newPrice ?? "");
@@ -179,8 +175,8 @@ function resolveMenuItem(item: MenuLineItem): { autoApplied: boolean; slaHours: 
       return { autoApplied: false, slaHours: SLA_HOURS.menu.add_item };
     case "update_content":
       return { autoApplied: false, slaHours: SLA_HOURS.menu.update_content };
-    case "reorder":
-      return { autoApplied: false, slaHours: SLA_HOURS.menu.reorder };
+    case "full_menu_price_change":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.full_menu_price_change };
   }
 }
 
@@ -201,15 +197,10 @@ function resolveCategory(
   category: Category,
   fields: TicketFields
 ): { autoApplied: boolean; slaHours: number; escalated: boolean; escalationReason: string | null } {
-  let escalated = !!fields.talkToAccountManager;
-  let escalationReason = escalated ? "vendor_requested" : null;
+  const escalated = false;
+  const escalationReason = null;
 
   if (category === "discounts") {
-    if (fields.campaignType === "commercial_terms") {
-      escalated = true;
-      escalationReason = "commercial_terms";
-      return { autoApplied: false, slaHours: SLA_HOURS.discounts, escalated, escalationReason };
-    }
     const pct = parseFloat(fields.discountPercent ?? "");
     const autoApplied = Number.isFinite(pct) && pct <= THRESHOLDS.discountAutoApprovePct;
     return { autoApplied, slaHours: SLA_HOURS.discounts, escalated, escalationReason };
@@ -312,6 +303,19 @@ export function rateTicket(id: number, rating: number, vendorId: number): Ticket
   if (!ticket || ticket.vendorId !== vendorId) return null;
   if (ticket.status !== "resolved") return ticket;
   db.prepare("UPDATE tickets SET rating = ? WHERE id = ?").run(rating, id);
+  return getTicketById(id);
+}
+
+/** Vendor-initiated fallback for a stalled ticket — the account manager is
+ * never the first point of contact, only a backstop when nobody's answered. */
+export function escalateTicket(id: number, vendorId: number): Ticket | null {
+  const ticket = getTicketById(id);
+  if (!ticket || ticket.vendorId !== vendorId) return null;
+  if (ticket.status === "resolved" || ticket.escalated) return ticket;
+  db.prepare("UPDATE tickets SET escalated = 1, escalation_reason = ? WHERE id = ?").run(
+    "vendor_requested",
+    id
+  );
   return getTicketById(id);
 }
 

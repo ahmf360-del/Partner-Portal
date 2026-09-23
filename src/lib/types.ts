@@ -1,13 +1,11 @@
 export type Category = "finance" | "discounts" | "tech" | "menu" | "other";
 
 export type MenuChangeType =
-  | "availability"
   | "price_change"
-  | "remove_temp"
   | "remove_permanent"
   | "add_item"
-  | "update_content"
-  | "reorder";
+  | "full_menu_price_change"
+  | "update_content";
 
 export type TicketStatus = "received" | "in_progress" | "resolved";
 
@@ -32,9 +30,6 @@ export interface MenuLineItem {
   effectiveDate?: string;
   availabilityWindow?: string;
   removalReason?: "out_of_stock" | "discontinued" | "seasonal";
-  removalIsPermanent?: boolean;
-  expectedReturnDate?: string;
-  reorderNotes?: string;
   // computed at submit time
   autoApplied?: boolean;
   slaHours?: number;
@@ -44,16 +39,14 @@ export interface TicketFields {
   // Finance
   issueType?:
     | "payout_delay"
-    | "invoice_dispute"
-    | "commission_question"
+    | "payment_timeline"
+    | "bank_details_change"
     | "proof_of_transfer"
-    | "soa_request"
-    | "report_request";
+    | "soa_request";
   amount?: string;
   orderOrInvoiceId?: string;
-  reportType?: "sales_summary" | "payout_history" | "reconciliation" | "other";
+  bankDetails?: string;
   // Discounts
-  campaignType?: "seasonal_promo" | "weekend_offer" | "flash_sale" | "commercial_terms";
   discountPercent?: string;
   dateRangeStart?: string;
   dateRangeEnd?: string;
@@ -61,14 +54,12 @@ export interface TicketFields {
   // Tech
   deviceOrBranch?: string;
   issueDescription?: string;
-  urgency?: "low" | "medium" | "high";
   // Menu & content
   items?: MenuLineItem[];
   // Other
   freeText?: string;
   // shared
   photoName?: string;
-  talkToAccountManager?: boolean;
 }
 
 export interface Ticket {
@@ -118,11 +109,9 @@ export interface TicketMessage {
 export const CATEGORIES: Category[] = ["finance", "discounts", "tech", "menu", "other"];
 
 export const MENU_CHANGE_TYPES: MenuChangeType[] = [
-  "availability",
   "price_change",
-  "remove_temp",
   "remove_permanent",
   "add_item",
+  "full_menu_price_change",
   "update_content",
-  "reorder",
 ];

@@ -14,14 +14,12 @@ export const SLA_HOURS = {
   tech: 4,
   other: 24,
   menu: {
-    availability: 0.25,
     price_change_auto: 4,
     price_change_review: 12,
-    remove_temp: 4,
     remove_permanent: 24,
     add_item: 48,
     update_content: 24,
-    reorder: 120, // ~5 business days
+    full_menu_price_change: 48,
   },
 } as const;
 

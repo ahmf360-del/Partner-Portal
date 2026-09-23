@@ -41,7 +41,7 @@ function Stars({ ticket, onRate }: { ticket: Ticket; onRate: (rating: number) =>
   );
 }
 
-export function StatusView() {
+export function StatusView({ accountManagerName }: { accountManagerName: string }) {
   const { t } = useLocale();
   const [tickets, setTickets] = useState<Ticket[] | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -73,6 +73,19 @@ export function StatusView() {
       await load();
     } catch {
       setError(t("status.error.reopen"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function escalate(id: number) {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/tickets/${id}/escalate`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      await load();
+    } catch {
+      setError(t("status.error.escalate"));
     } finally {
       setBusyId(null);
     }
@@ -158,6 +171,17 @@ export function StatusView() {
               {tk.status === "resolved" && (
                 <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => reopen(tk.id)} disabled={busyId === tk.id}>
                   {t("status.reopen")}
+                </Button>
+              )}
+              {tk.status !== "resolved" && !tk.escalated && (
+                <Button
+                  variant="ghost"
+                  className="!px-2 !py-1 text-xs"
+                  onClick={() => escalate(tk.id)}
+                  disabled={busyId === tk.id}
+                  title={t("status.escalate.hint", { name: accountManagerName })}
+                >
+                  {busyId === tk.id ? t("status.escalating") : t("status.escalate")}
                 </Button>
               )}
             </div>

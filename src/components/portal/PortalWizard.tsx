@@ -25,15 +25,16 @@ function requiredFieldsOk(category: Category, branch: string, fields: TicketFiel
   switch (category) {
     case "finance": {
       if (!fields.issueType) return false;
-      if (fields.issueType === "report_request") return !!fields.reportType && !!fields.dateRangeStart && !!fields.dateRangeEnd;
+      if (fields.issueType === "bank_details_change") return !!fields.bankDetails;
       if (fields.issueType === "soa_request") return !!fields.dateRangeStart && !!fields.dateRangeEnd;
       if (fields.issueType === "proof_of_transfer") return !!fields.orderOrInvoiceId && !!fields.dateRangeStart && !!fields.dateRangeEnd;
+      if (fields.issueType === "payment_timeline") return true;
       return !!fields.orderOrInvoiceId;
     }
     case "discounts":
-      return !!fields.campaignType && !!fields.reason && (fields.campaignType === "commercial_terms" || !!fields.discountPercent);
+      return !!fields.reason && !!fields.discountPercent;
     case "tech":
-      return !!fields.issueDescription && !!fields.urgency;
+      return !!fields.issueDescription;
     case "menu":
       return !!fields.items?.length && fields.items.every((i) => i.itemName);
     case "other":
@@ -51,7 +52,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
   const [fields, setFields] = useState<TicketFields>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ code: string; autoApplied: boolean; escalated: boolean } | null>(null);
+  const [result, setResult] = useState<{ code: string; autoApplied: boolean } | null>(null);
 
   function update(patch: Partial<TicketFields>) {
     setFields((f) => ({ ...f, ...patch }));
@@ -86,7 +87,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
         setSubmitError(t("error.submit.generic"));
         return;
       }
-      setResult({ code: data.ticket.code, autoApplied: data.autoApplied, escalated: data.escalated });
+      setResult({ code: data.ticket.code, autoApplied: data.autoApplied });
       setStep("done");
     } catch {
       setSubmitError(t("error.network"));
@@ -156,7 +157,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
       </div>
 
       {tab === "tickets" ? (
-        <StatusView />
+        <StatusView accountManagerName={vendor.accountManagerName} />
       ) : (
         <>
           {step === "branch" && (
@@ -224,20 +225,6 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
                 {category === "other" && <OtherForm fields={fields} update={update} />}
               </div>
 
-              <label className="mt-5 flex items-start gap-2.5 rounded-xl bg-brand-soft/30 p-3.5">
-                <input
-                  type="checkbox"
-                  checked={!!fields.talkToAccountManager}
-                  onChange={(e) => update({ talkToAccountManager: e.target.checked })}
-                  className="mt-0.5 h-4 w-4 accent-[var(--bf-magenta)]"
-                />
-                <span className="text-sm">
-                  <span className="font-medium">{t("form.talkToAm.label", { name: vendor.accountManagerName })}</span>
-                  <br />
-                  <span className="text-xs text-ink-soft">{t("form.talkToAm.hint")}</span>
-                </span>
-              </label>
-
               {submitError && (
                 <p className="mt-4 rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">
                   {submitError}
@@ -262,7 +249,6 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
 
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {result.autoApplied && <Pill tone="good">{t("done.autoApplied")}</Pill>}
-                {result.escalated && <Pill tone="warn">{t("done.escalated", { name: vendor.accountManagerName })}</Pill>}
               </div>
 
               <p className="mt-4 text-sm text-ink-soft">{t("done.body")}</p>
