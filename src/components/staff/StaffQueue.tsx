@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { formatDateTime, timeUntil } from "@/lib/format";
 import type { Category, TicketWithVendor } from "@/lib/types";
 import { OWNING_TEAM } from "@/lib/config";
@@ -14,14 +15,16 @@ import type { TranslationKey } from "@/lib/i18n/dictionary";
 
 type Filter = "open" | "escalated" | "resolved" | "all";
 
-// Staff share one login across every department — this is the left-hand nav
-// that picks which team's queue to load, rather than a login tied to a team.
+// Staff share one login across every department — this is the sidebar that
+// picks which team's queue to load, rather than a login tied to a team. The
+// labels reuse the vendor-facing category names exactly, so a ticket filed
+// under "Discounts & Offers" shows up under a tab of the same name here.
 const DEPARTMENTS: { team: string; labelKey: TranslationKey; category: Category }[] = [
-  { team: OWNING_TEAM.finance, labelKey: "team.dept.finance", category: "finance" },
-  { team: OWNING_TEAM.discounts, labelKey: "team.dept.growth", category: "discounts" },
-  { team: OWNING_TEAM.tech, labelKey: "team.dept.ops", category: "tech" },
-  { team: OWNING_TEAM.menu, labelKey: "team.dept.content", category: "menu" },
-  { team: OWNING_TEAM.other, labelKey: "team.dept.triage", category: "other" },
+  { team: OWNING_TEAM.finance, labelKey: "category.finance.label", category: "finance" },
+  { team: OWNING_TEAM.discounts, labelKey: "category.discounts.label", category: "discounts" },
+  { team: OWNING_TEAM.tech, labelKey: "category.tech.label", category: "tech" },
+  { team: OWNING_TEAM.menu, labelKey: "category.menu.label", category: "menu" },
+  { team: OWNING_TEAM.other, labelKey: "category.other.label", category: "other" },
 ];
 
 function escalationReasonText(t: (k: TranslationKey) => string, reason: string | null): string | null {
@@ -163,37 +166,90 @@ export function StaffQueue({ staff }: { staff: { name: string } }) {
   }, [tickets]);
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-7xl flex-col gap-5 px-5 py-6 lg:px-10">
-      <header className="flex items-center justify-between">
-        <Logo />
-        <div className="flex items-center gap-3">
-          <LocaleToggle />
-          <p className="text-sm font-semibold">{staff.name}</p>
-          <button onClick={logout} className="text-xs font-semibold text-ink-soft hover:text-brand">
-            {t("rail.logout")}
-          </button>
+    <div className="flex min-h-dvh">
+      <aside className={`relative hidden w-64 shrink-0 flex-col overflow-hidden bg-brand-dark px-5 py-6 lg:flex ${selected ? "lg:hidden xl:flex" : ""}`}>
+        <Image
+          src="/brand/logo-mark.png"
+          alt=""
+          width={200}
+          height={200}
+          aria-hidden
+          className="pointer-events-none absolute end-[-70px] top-[-70px] h-[320px] w-[320px] opacity-[0.07]"
+        />
+
+        <div className="relative z-10 flex items-center justify-between">
+          <Logo variant="onBrand" size="sm" />
         </div>
-      </header>
 
-      {error && <p className="rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">{error}</p>}
+        <p className="relative z-10 mt-8 text-xs font-semibold uppercase tracking-wide text-white/50">
+          {t("team.rail.departments")}
+        </p>
+        <nav className="relative z-10 mt-3 flex flex-1 flex-col gap-1.5">
+          {DEPARTMENTS.map((d) => {
+            const active = team === d.team;
+            return (
+              <button
+                key={d.team}
+                onClick={() => setTeam(d.team)}
+                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-start text-sm font-semibold transition ${
+                  active ? "bg-white text-brand-dark shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition ${
+                    active ? "bg-brand-soft text-brand-dark" : "bg-white/10 text-white"
+                  }`}
+                >
+                  <CategoryIcon category={d.category} className="h-4 w-4" />
+                </span>
+                {t(d.labelKey)}
+              </button>
+            );
+          })}
+        </nav>
 
-      <div className="grid gap-5 lg:grid-cols-[200px_380px_1fr]">
-        <nav className={`flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0 ${selected ? "hidden lg:flex" : ""}`}>
+        <div className="relative z-10 flex flex-col gap-3 border-t border-white/10 pt-4">
+          <LocaleToggle onBrand />
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-white/80">{staff.name}</p>
+            <button onClick={logout} className="text-xs font-semibold text-white/60 hover:text-white">
+              {t("rail.logout")}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div className="mx-auto flex w-full flex-1 flex-col gap-5 px-5 py-6 lg:max-w-6xl lg:px-8">
+        <header className="flex items-center justify-between lg:hidden">
+          <Logo />
+          <div className="flex items-center gap-3">
+            <LocaleToggle />
+            <p className="text-sm font-semibold">{staff.name}</p>
+            <button onClick={logout} className="text-xs font-semibold text-ink-soft hover:text-brand">
+              {t("rail.logout")}
+            </button>
+          </div>
+        </header>
+
+        <nav className={`flex gap-2 overflow-x-auto pb-1 lg:hidden ${selected ? "hidden" : ""}`}>
           {DEPARTMENTS.map((d) => (
             <button
               key={d.team}
               onClick={() => setTeam(d.team)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-start text-sm font-semibold transition ${
-                team === d.team ? "bg-brand text-white" : "bg-brand-soft/30 text-ink-soft hover:bg-brand-soft/50"
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                team === d.team ? "bg-brand-dark text-white" : "bg-brand-soft/40 text-ink-soft"
               }`}
             >
-              <CategoryIcon category={d.category} className="h-4 w-4 shrink-0" />
+              <CategoryIcon category={d.category} className="h-3.5 w-3.5" />
               {t(d.labelKey)}
             </button>
           ))}
         </nav>
 
-        <div className={`flex flex-col gap-3 ${selected ? "hidden lg:flex" : ""}`}>
+        {error && <p className="rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">{error}</p>}
+
+        <div className="grid flex-1 gap-5 lg:grid-cols-[380px_1fr]">
+          <div className={`flex flex-col gap-3 ${selected ? "hidden lg:flex" : ""}`}>
           <nav className="flex gap-1 rounded-xl bg-brand-soft/40 p-1">
             {([
               ["open", `${t("team.tab.open")} (${counts.open})`],
@@ -303,6 +359,7 @@ export function StaffQueue({ staff }: { staff: { name: string } }) {
             <p className="text-sm text-ink-soft">{t("team.queue.pick")}</p>
           </Card>
         )}
+        </div>
       </div>
     </div>
   );

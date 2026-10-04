@@ -68,10 +68,14 @@ vendor access. One shared login for every department (demo account, `src/lib/db.
 | -------- | ------------- |
 | `staff`  | `staff-2026`  |
 
-After signing in, a left-hand nav lists all five departments (Finance, Commercial / Growth,
-Ops / Tech Support, Content, Triage) — clicking one loads that team's queue
-(`listTicketsForTeam`, scoped by the ticket's own `owning_team`, not by who's logged in). The
-queue lists every ticket for the selected team (filterable: Open / Escalated / Resolved / All,
+After signing in, a full-height dark-purple sidebar (`bg-brand-dark`, the same darker shade used
+elsewhere for hover/active states) lists all five departments — labeled with the exact same names
+vendors see when filing a request (Finance, Discounts & Offers, Tech Support, Menu & Content,
+Other), not an internal team name — clicking one loads that team's queue (`listTicketsForTeam`,
+scoped by the ticket's own `owning_team`, not by who's logged in; `OWNING_TEAM` in
+`src/lib/config.ts` maps each vendor-facing category to the internal team string used for
+routing/filtering). On mobile the sidebar collapses to a horizontal scrollable row instead of
+taking the full width. The queue lists every ticket for the selected team (filterable: Open / Escalated / Resolved / All,
 sorted escalated-first then by SLA urgency), a click opens the full ticket — vendor, restaurant,
 branch, every field submitted, and the reply thread. Staff can send a reply (the vendor sees it on
 their own status page the next time they open it, attributed to the ticket's owning team, e.g.
