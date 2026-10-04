@@ -16,17 +16,19 @@ export async function POST(request: NextRequest) {
   if (!vendorId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
   const body = (await request.json()) as {
+    restaurant: string;
     branch: string;
     category: Category;
     fields: TicketFields;
   };
 
-  if (!body.branch || !body.category) {
-    return NextResponse.json({ error: "Missing branch or category" }, { status: 400 });
+  if (!body.restaurant || !body.branch || !body.category) {
+    return NextResponse.json({ error: "Missing restaurant, branch, or category" }, { status: 400 });
   }
 
   const result = createTicket({
     vendorId,
+    restaurant: body.restaurant,
     branch: body.branch,
     category: body.category,
     fields: body.fields ?? {},

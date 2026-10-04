@@ -14,7 +14,7 @@ export interface Vendor {
   username: string;
   name: string;
   phone: string;
-  branches: string[];
+  restaurants: string[];
   portfolioTier: "standard" | "high-value";
   accountManagerName: string;
 }
@@ -47,12 +47,19 @@ export interface TicketFields {
   orderOrInvoiceId?: string;
   bankDetails?: string;
   // Discounts
+  offerRequestType?:
+    | "menu_update"
+    | "new_items"
+    | "new_offers"
+    | "update_offer"
+    | "new_branch"
+    | "update_branch";
   discountPercent?: string;
   dateRangeStart?: string;
   dateRangeEnd?: string;
   reason?: string;
   // Tech
-  deviceOrBranch?: string;
+  deviceIssueType?: "replace_tablet" | "request_charger" | "connection_issue" | "printer_connection";
   issueDescription?: string;
   // Menu & content
   items?: MenuLineItem[];
@@ -66,6 +73,7 @@ export interface Ticket {
   id: number;
   code: string;
   vendorId: number;
+  restaurant: string;
   branch: string;
   category: Category;
   fields: TicketFields;
@@ -91,7 +99,6 @@ export interface Staff {
   id: number;
   username: string;
   name: string;
-  team: string;
 }
 
 export interface TicketMessage {

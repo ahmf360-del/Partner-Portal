@@ -65,7 +65,7 @@ export function FinanceForm({ fields, update }: FormProps) {
             <TextInput type="number" min={0} value={fields.amount ?? ""} onChange={(e) => update({ amount: e.target.value })} placeholder="0.00" />
           </Field>
           <Field label={fields.issueType === "proof_of_transfer" ? t("finance.reference.transfer") : t("finance.reference")} required>
-            <TextInput value={fields.orderOrInvoiceId ?? ""} onChange={(e) => update({ orderOrInvoiceId: e.target.value })} placeholder="e.g. INV-88213" required />
+            <TextInput value={fields.orderOrInvoiceId ?? ""} onChange={(e) => update({ orderOrInvoiceId: e.target.value })} required />
           </Field>
         </>
       )}
@@ -92,6 +92,8 @@ export function FinanceForm({ fields, update }: FormProps) {
   );
 }
 
+const DISCOUNT_REQUEST_TYPES = ["menu_update", "new_items", "new_offers", "update_offer", "new_branch", "update_branch"] as const;
+
 export function DiscountsForm({ fields, update }: FormProps) {
   const { t } = useLocale();
   const pct = parseFloat(fields.discountPercent ?? "");
@@ -99,6 +101,20 @@ export function DiscountsForm({ fields, update }: FormProps) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Field label={t("discounts.requestType")} required>
+          <Select
+            value={fields.offerRequestType ?? ""}
+            onChange={(e) => update({ offerRequestType: e.target.value as TicketFields["offerRequestType"] })}
+            required
+          >
+            <option value="" disabled>{t("field.selectOne")}</option>
+            {DISCOUNT_REQUEST_TYPES.map((v) => (
+              <option key={v} value={v}>{t(`discounts.requestType.${v}`)}</option>
+            ))}
+          </Select>
+        </Field>
+      </div>
       <Field
         label={t("discounts.percent")}
         required
@@ -121,17 +137,33 @@ export function DiscountsForm({ fields, update }: FormProps) {
           <TextArea value={fields.reason ?? ""} onChange={(e) => update({ reason: e.target.value })} placeholder={t("discounts.reason.placeholder")} required />
         </Field>
       </div>
+      <div className="sm:col-span-2">
+        <PhotoField value={fields.photoName} onChange={(photoName) => update({ photoName })} />
+      </div>
     </div>
   );
 }
 
-export function TechForm({ fields, update, branch }: FormProps & { branch: string }) {
+const TECH_DEVICE_ISSUES = ["replace_tablet", "request_charger", "connection_issue", "printer_connection"] as const;
+
+export function TechForm({ fields, update }: FormProps) {
   const { t } = useLocale();
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field label={t("tech.deviceOrBranch")} required>
-        <TextInput value={fields.deviceOrBranch ?? branch} onChange={(e) => update({ deviceOrBranch: e.target.value })} required />
-      </Field>
+      <div className="sm:col-span-2">
+        <Field label={t("tech.deviceIssue")} required>
+          <Select
+            value={fields.deviceIssueType ?? ""}
+            onChange={(e) => update({ deviceIssueType: e.target.value as TicketFields["deviceIssueType"] })}
+            required
+          >
+            <option value="" disabled>{t("field.selectOne")}</option>
+            {TECH_DEVICE_ISSUES.map((v) => (
+              <option key={v} value={v}>{t(`tech.deviceIssue.${v}`)}</option>
+            ))}
+          </Select>
+        </Field>
+      </div>
       <div className="sm:col-span-2">
         <Field label={t("tech.description")} required>
           <TextArea value={fields.issueDescription ?? ""} onChange={(e) => update({ issueDescription: e.target.value })} placeholder={t("tech.description.placeholder")} required />
@@ -167,6 +199,9 @@ function MenuItemFields({ item, onChange }: { item: MenuLineItem; onChange: (pat
           <TextInput placeholder={t("menu.currentPrice")} type="number" value={item.currentPrice ?? ""} onChange={(e) => onChange({ currentPrice: e.target.value })} />
           <TextInput placeholder={t("menu.newPrice")} type="number" value={item.newPrice ?? ""} onChange={(e) => onChange({ newPrice: e.target.value })} required />
           <TextInput placeholder={t("menu.effectiveDate")} type="date" value={item.effectiveDate ?? ""} onChange={(e) => onChange({ effectiveDate: e.target.value })} />
+          <div className="sm:col-span-3">
+            <PhotoField value={item.photoName} onChange={(photoName) => onChange({ photoName })} />
+          </div>
         </div>
       );
     case "add_item":
@@ -183,12 +218,15 @@ function MenuItemFields({ item, onChange }: { item: MenuLineItem; onChange: (pat
       );
     case "remove_permanent":
       return (
-        <Select value={item.removalReason ?? ""} onChange={(e) => onChange({ removalReason: e.target.value as MenuLineItem["removalReason"] })}>
-          <option value="" disabled>{t("menu.removalReason")}</option>
-          <option value="out_of_stock">{t("menu.removalReason.out_of_stock")}</option>
-          <option value="discontinued">{t("menu.removalReason.discontinued")}</option>
-          <option value="seasonal">{t("menu.removalReason.seasonal")}</option>
-        </Select>
+        <div className="grid gap-3">
+          <Select value={item.removalReason ?? ""} onChange={(e) => onChange({ removalReason: e.target.value as MenuLineItem["removalReason"] })}>
+            <option value="" disabled>{t("menu.removalReason")}</option>
+            <option value="out_of_stock">{t("menu.removalReason.out_of_stock")}</option>
+            <option value="discontinued">{t("menu.removalReason.discontinued")}</option>
+            <option value="seasonal">{t("menu.removalReason.seasonal")}</option>
+          </Select>
+          <PhotoField value={item.photoName} onChange={(photoName) => onChange({ photoName })} />
+        </div>
       );
     case "update_content":
       return (

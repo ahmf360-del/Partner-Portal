@@ -19,7 +19,7 @@ interface VendorRow {
   password_hash: string;
   name: string;
   phone: string;
-  branches: string;
+  restaurants: string;
   portfolio_tier: string;
   account_manager_name: string;
 }
@@ -30,7 +30,7 @@ function vendorFromRow(row: VendorRow): Vendor {
     username: row.username,
     name: row.name,
     phone: row.phone,
-    branches: JSON.parse(row.branches),
+    restaurants: JSON.parse(row.restaurants),
     portfolioTier: row.portfolio_tier as Vendor["portfolioTier"],
     accountManagerName: row.account_manager_name,
   };
@@ -68,6 +68,7 @@ interface TicketRow {
   id: number;
   code: string;
   vendor_id: number;
+  restaurant: string;
   branch: string;
   category: string;
   fields: string;
@@ -130,6 +131,7 @@ function ticketFromRow(row: TicketRow): Ticket {
     id: row.id,
     code: row.code,
     vendorId: row.vendor_id,
+    restaurant: row.restaurant,
     branch: row.branch,
     category: row.category as Category,
     fields: JSON.parse(row.fields),
@@ -182,6 +184,7 @@ function resolveMenuItem(item: MenuLineItem): { autoApplied: boolean; slaHours: 
 
 interface CreateTicketInput {
   vendorId: number;
+  restaurant: string;
   branch: string;
   category: Category;
   fields: TicketFields;
@@ -235,13 +238,14 @@ export function createTicket(input: CreateTicketInput): { ticket: Ticket } & Cre
 
   const insert = db.prepare(`
     INSERT INTO tickets
-      (vendor_id, branch, category, fields, status, owning_team, auto_applied, escalated, escalation_reason, created_at, sla_due_at, resolved_at)
+      (vendor_id, restaurant, branch, category, fields, status, owning_team, auto_applied, escalated, escalation_reason, created_at, sla_due_at, resolved_at)
     VALUES
-      (@vendorId, @branch, @category, @fields, @status, @owningTeam, @autoApplied, @escalated, @escalationReason, @createdAt, @slaDueAt, @resolvedAt)
+      (@vendorId, @restaurant, @branch, @category, @fields, @status, @owningTeam, @autoApplied, @escalated, @escalationReason, @createdAt, @slaDueAt, @resolvedAt)
   `);
 
   const result = insert.run({
     vendorId: input.vendorId,
+    restaurant: input.restaurant,
     branch: input.branch,
     category: input.category,
     fields: JSON.stringify(input.fields),
@@ -333,26 +337,24 @@ export function listTicketsForTeam(team: string): TicketWithVendor[] {
   return rows.map(ticketFromRow).map(withVendorName);
 }
 
-/** Ownership-scoped read: returns null (not the ticket) if it belongs to a
- * different team, so a staff account can't view another team's ticket by
- * guessing an id. */
-export function getTicketForTeam(id: number, team: string): TicketWithVendor | null {
+/** Staff share one login across every department, so a ticket lookup isn't
+ * scoped to a caller's own team — any signed-in staff member can open any
+ * team's ticket (the owning team just decides which queue it lists under). */
+export function getTicketWithVendor(id: number): TicketWithVendor | null {
   const ticket = getTicketById(id);
-  if (!ticket || ticket.owningTeam !== team) return null;
-  return withVendorName(ticket);
+  return ticket ? withVendorName(ticket) : null;
 }
 
 /** A staff reply: posts a message (if any body given) and/or transitions
  * status — replying to an untouched ticket moves it to "in progress";
- * `resolve: true` closes it outright. Scoped to the staff member's own team. */
+ * `resolve: true` closes it outright. */
 export function replyToTicket(
   id: number,
-  team: string,
   authorName: string,
   body: string | null,
   resolve: boolean
 ): Ticket | null {
-  const ticket = getTicketForTeam(id, team);
+  const ticket = getTicketById(id);
   if (!ticket) return null;
 
   if (body) addMessage(id, "staff", authorName, body);

@@ -7,11 +7,10 @@ interface StaffRow {
   username: string;
   password_hash: string;
   name: string;
-  team: string;
 }
 
 function staffFromRow(row: StaffRow): Staff {
-  return { id: row.id, username: row.username, name: row.name, team: row.team };
+  return { id: row.id, username: row.username, name: row.name };
 }
 
 export function getStaffById(id: number): Staff | null {

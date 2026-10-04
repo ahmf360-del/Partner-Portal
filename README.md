@@ -1,9 +1,10 @@
 # Breadfast Partner Portal — v1
 
 The vendor-facing app from the workflow design: a small/mid-size restaurant partner signs in with
-a username and password, picks a branch and a category, fills a form that adapts to what they
-picked, and gets a ticket ID plus a status page they can return to any time. Bilingual — English
-and Arabic (with RTL layout) on the same URL, switchable in-page.
+a username and password, picks which restaurant the request is about, picks a category, fills a
+form that adapts to what they picked (which also asks which specific branch of that restaurant
+it's for), and gets a ticket ID plus a status page they can return to any time. Bilingual —
+English and Arabic (with RTL layout) on the same URL, switchable in-page.
 
 Now covers both sides: the vendor flow (steps 1–2) **and** the internal team queues (step 3) where
 Finance, Commercial/Growth, Ops/Tech, Content, and Triage open, view, and reply to what's routed to
@@ -61,34 +62,42 @@ deploying anywhere real; locally it falls back to `breadfast-demo` (see `src/lib
 ## Team queues (`/team`)
 
 Where the five owning teams actually work tickets — separate from `/admin`, which only manages
-vendor access. Each department signs in with its own username/password (its own session, so a
-vendor and a staff member can be logged in on the same browser without clashing) and sees only its
-own queue (`owning_team` on the ticket, scoped server-side — a Content account can't fetch a
-Finance ticket by guessing an id). Demo accounts (`src/lib/db.ts`, pattern `<username>-2026`):
+vendor access. One shared login for every department (demo account, `src/lib/db.ts`):
 
-| Username  | Password        | Team                  |
-| --------- | --------------- | ---------------------- |
-| `finance` | `finance-2026`  | Finance queue           |
-| `growth`  | `growth-2026`   | Commercial / Growth     |
-| `ops`     | `ops-2026`      | Ops / Tech support      |
-| `content` | `content-2026`  | Content queue           |
-| `triage`  | `triage-2026`   | Triage                  |
+| Username | Password      |
+| -------- | ------------- |
+| `staff`  | `staff-2026`  |
 
-The queue lists every ticket for that team (filterable: Open / Escalated / Resolved / All, sorted
-escalated-first then by SLA urgency), a click opens the full ticket — vendor, branch, every field
-submitted, and the reply thread. Staff can send a reply (the vendor sees it on their own status
-page the next time they open it), mark a ticket resolved with or without a reply, and an untouched
-ticket automatically moves from "received" to "in progress" on the first reply. Bilingual and using
-the same BrandRail split-screen layout as the vendor side — same design system, same EN/AR toggle.
+After signing in, a left-hand nav lists all five departments (Finance, Commercial / Growth,
+Ops / Tech Support, Content, Triage) — clicking one loads that team's queue
+(`listTicketsForTeam`, scoped by the ticket's own `owning_team`, not by who's logged in). The
+queue lists every ticket for the selected team (filterable: Open / Escalated / Resolved / All,
+sorted escalated-first then by SLA urgency), a click opens the full ticket — vendor, restaurant,
+branch, every field submitted, and the reply thread. Staff can send a reply (the vendor sees it on
+their own status page the next time they open it, attributed to the ticket's owning team, e.g.
+"Finance Team"), mark a ticket resolved with or without a reply, and an untouched ticket
+automatically moves from "received" to "in progress" on the first reply. Bilingual and using the
+same BrandRail split-screen layout as the vendor side — same design system, same EN/AR toggle.
+
+## Restaurant + branch
+
+Every ticket is filed against a restaurant (the upfront picker, `vendor.restaurants` —
+`src/lib/db.ts`) and a specific branch of it (a required free-text field inside the form itself,
+since a vendor can run branches that aren't a fixed list). A vendor with just one restaurant
+skips straight to the category picker, same as the old single-branch case.
 
 ## Category fields
+
+Every category now also has an optional attachment field.
 
 - **Finance**: payout delay, payment timeline, changing bank details (new bank details go to a
   required text field, applied only after finance verifies), proof of transfer, statement of
   account (SOA).
-- **Discounts & offers**: discount %, start/end date, offer details (what the offer is and why) —
+- **Discounts & offers**: request type (menu update, new items, new offers, update offer, new
+  branch, update branch), discount %, start/end date, offer details (what the offer is and why) —
   auto-approved at or under the threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
-- **Tech support**: device/branch, description, optional screenshot.
+- **Tech support**: issue with the Talabat device (replace tablet, request charger, connection
+  issue, printer connection), description.
 - **Menu & Content**: item price change, remove item permanently, add a new item, full menu price
   change, or update description/photo — per line item, multiple items per ticket. Full menu price
   change and update description/photo both prompt to attach a file (new price list, or the new
@@ -96,7 +105,7 @@ the same BrandRail split-screen layout as the vendor side — same design system
 
 ## What's real
 
-- Full vendor flow: sign in → branch → category → dynamic form → submit → ticket ID → track/reopen/rate.
+- Full vendor flow: sign in → restaurant → category → dynamic form (incl. branch) → submit → ticket ID → track/reopen/rate.
 - Menu & Content supports multiple line items per ticket, each independently routed by risk
   (`src/lib/tickets.ts` → `resolveMenuItem`), matching the design doc's Fig. 3.
 - Auto-apply vs. human-review logic, SLA due dates, owning-team assignment, and the escalation

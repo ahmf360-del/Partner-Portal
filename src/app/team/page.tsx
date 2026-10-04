@@ -19,5 +19,5 @@ export default async function TeamPage() {
 
   if (!staff) return <StaffLogin />;
 
-  return <StaffQueue staff={{ name: staff.name, team: staff.team }} />;
+  return <StaffQueue staff={{ name: staff.name }} />;
 }

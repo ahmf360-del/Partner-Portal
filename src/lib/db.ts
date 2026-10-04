@@ -50,7 +50,7 @@ retryOnBusy(() => db.exec(`
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
-    branches TEXT NOT NULL,
+    restaurants TEXT NOT NULL,
     portfolio_tier TEXT NOT NULL DEFAULT 'standard',
     account_manager_name TEXT NOT NULL
   );
@@ -59,6 +59,7 @@ retryOnBusy(() => db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT UNIQUE,
     vendor_id INTEGER NOT NULL REFERENCES vendors(id),
+    restaurant TEXT NOT NULL,
     branch TEXT NOT NULL,
     category TEXT NOT NULL,
     fields TEXT NOT NULL,
@@ -78,8 +79,7 @@ retryOnBusy(() => db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    name TEXT NOT NULL,
-    team TEXT NOT NULL
+    name TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS ticket_messages (
@@ -97,8 +97,8 @@ function seedVendors() {
   // check, so two processes seeding at once (concurrent cold starts) can't
   // race each other into a UNIQUE constraint failure.
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO vendors (username, password_hash, name, phone, branches, portfolio_tier, account_manager_name)
-    VALUES (@username, @passwordHash, @name, @phone, @branches, @portfolioTier, @accountManagerName)
+    INSERT OR IGNORE INTO vendors (username, password_hash, name, phone, restaurants, portfolio_tier, account_manager_name)
+    VALUES (@username, @passwordHash, @name, @phone, @restaurants, @portfolioTier, @accountManagerName)
   `);
 
   insert.run({
@@ -106,7 +106,7 @@ function seedVendors() {
     passwordHash: hashPassword("bread-2026"),
     name: "El Zaeem",
     phone: "+201001234567",
-    branches: JSON.stringify(["Mohandessin", "Dokki"]),
+    restaurants: JSON.stringify(["El Zaeem Grill", "El Zaeem Express"]),
     portfolioTier: "standard",
     accountManagerName: "Nourhan (your account manager)",
   });
@@ -116,29 +116,26 @@ function seedVendors() {
     passwordHash: hashPassword("bread-2026"),
     name: "Cafe Nour",
     phone: "+201127654321",
-    branches: JSON.stringify(["Zamalek"]),
+    restaurants: JSON.stringify(["Cafe Nour"]),
     portfolioTier: "high-value",
     accountManagerName: "Nourhan (your account manager)",
   });
 }
 
+// One shared login for every department — staff pick which department's
+// queue to view after signing in, rather than each department having its
+// own account (see src/components/staff/StaffQueue.tsx).
 function seedStaff() {
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO staff (username, password_hash, name, team)
-    VALUES (@username, @passwordHash, @name, @team)
+    INSERT OR IGNORE INTO staff (username, password_hash, name)
+    VALUES (@username, @passwordHash, @name)
   `);
 
-  const accounts = [
-    { username: "finance", name: "Finance Team", team: "Finance queue" },
-    { username: "growth", name: "Commercial / Growth Team", team: "Commercial / Growth" },
-    { username: "ops", name: "Ops / Tech Support Team", team: "Ops / Tech support" },
-    { username: "content", name: "Content Team", team: "Content queue" },
-    { username: "triage", name: "Triage Team", team: "Triage" },
-  ];
-
-  for (const a of accounts) {
-    insert.run({ ...a, passwordHash: hashPassword(`${a.username}-2026`) });
-  }
+  insert.run({
+    username: "staff",
+    passwordHash: hashPassword("staff-2026"),
+    name: "Breadfast Staff",
+  });
 }
 
 retryOnBusy(seedVendors);

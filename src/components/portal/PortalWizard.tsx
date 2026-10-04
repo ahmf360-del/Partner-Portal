@@ -7,21 +7,21 @@ import { BrandRail, RailSteps } from "@/components/brand/BrandRail";
 import { StatusView } from "@/components/portal/StatusView";
 import { CategoryIcon } from "@/components/portal/CategoryIcon";
 import { DiscountsForm, FinanceForm, MenuForm, OtherForm, TechForm } from "@/components/portal/CategoryForms";
-import { Button, Card, Pill } from "@/components/ui/primitives";
+import { Button, Card, Field, Pill, TextInput } from "@/components/ui/primitives";
 import { LocaleToggle, useLocale } from "@/components/i18n/LocaleProvider";
 import { CATEGORIES } from "@/lib/types";
 import type { Category, TicketFields } from "@/lib/types";
 
 interface VendorSummary {
   name: string;
-  branches: string[];
+  restaurants: string[];
   accountManagerName: string;
 }
 
-type Step = "branch" | "category" | "form" | "done";
+type Step = "restaurant" | "category" | "form" | "done";
 
-function requiredFieldsOk(category: Category, branch: string, fields: TicketFields): boolean {
-  if (!branch) return false;
+function requiredFieldsOk(category: Category, restaurant: string, branch: string, fields: TicketFields): boolean {
+  if (!restaurant || !branch.trim()) return false;
   switch (category) {
     case "finance": {
       if (!fields.issueType) return false;
@@ -32,9 +32,9 @@ function requiredFieldsOk(category: Category, branch: string, fields: TicketFiel
       return !!fields.orderOrInvoiceId;
     }
     case "discounts":
-      return !!fields.reason && !!fields.discountPercent;
+      return !!fields.offerRequestType && !!fields.reason && !!fields.discountPercent;
     case "tech":
-      return !!fields.issueDescription;
+      return !!fields.deviceIssueType && !!fields.issueDescription;
     case "menu":
       return !!fields.items?.length && fields.items.every((i) => i.itemName);
     case "other":
@@ -46,8 +46,9 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
   const { t } = useLocale();
   const router = useRouter();
   const [tab, setTab] = useState<"new" | "tickets">("new");
-  const [step, setStep] = useState<Step>(vendor.branches.length > 1 ? "branch" : "category");
-  const [branch, setBranch] = useState(vendor.branches.length === 1 ? vendor.branches[0] : "");
+  const [step, setStep] = useState<Step>(vendor.restaurants.length > 1 ? "restaurant" : "category");
+  const [restaurant, setRestaurant] = useState(vendor.restaurants.length === 1 ? vendor.restaurants[0] : "");
+  const [branch, setBranch] = useState("");
   const [category, setCategory] = useState<Category | null>(null);
   const [fields, setFields] = useState<TicketFields>({});
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +60,9 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
   }
 
   function startNew() {
-    setStep(vendor.branches.length > 1 ? "branch" : "category");
+    setStep(vendor.restaurants.length > 1 ? "restaurant" : "category");
+    setRestaurant(vendor.restaurants.length === 1 ? vendor.restaurants[0] : "");
+    setBranch("");
     setCategory(null);
     setFields({});
     setResult(null);
@@ -80,7 +83,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ branch, category, fields }),
+        body: JSON.stringify({ restaurant, branch, category, fields }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -96,9 +99,9 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
     }
   }
 
-  const stepOrder: Step[] = vendor.branches.length > 1 ? ["branch", "category", "form", "done"] : ["category", "form", "done"];
-  const stepLabelKey: Record<Step, "wizard.step.branch" | "wizard.step.category" | "wizard.step.form" | "wizard.step.done"> = {
-    branch: "wizard.step.branch",
+  const stepOrder: Step[] = vendor.restaurants.length > 1 ? ["restaurant", "category", "form", "done"] : ["category", "form", "done"];
+  const stepLabelKey: Record<Step, "wizard.step.restaurant" | "wizard.step.category" | "wizard.step.form" | "wizard.step.done"> = {
+    restaurant: "wizard.step.restaurant",
     category: "wizard.step.category",
     form: "wizard.step.form",
     done: "wizard.step.done",
@@ -160,20 +163,20 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
         <StatusView accountManagerName={vendor.accountManagerName} />
       ) : (
         <>
-          {step === "branch" && (
+          {step === "restaurant" && (
             <Card className="p-6">
-              <h2 className="font-display text-lg font-bold">{t("branch.heading")}</h2>
+              <h2 className="font-display text-lg font-bold">{t("restaurant.heading")}</h2>
               <div className="mt-4 grid gap-2">
-                {vendor.branches.map((b) => (
+                {vendor.restaurants.map((r) => (
                   <button
-                    key={b}
+                    key={r}
                     onClick={() => {
-                      setBranch(b);
+                      setRestaurant(r);
                       setStep("category");
                     }}
                     className="rounded-xl border border-line bg-white px-4 py-3 text-start text-sm font-medium hover:border-brand"
                   >
-                    {b}
+                    {r}
                   </button>
                 ))}
               </div>
@@ -183,7 +186,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
           {step === "category" && (
             <Card className="p-6">
               <h2 className="font-display text-lg font-bold">{t("category.heading")}</h2>
-              {branch && <p className="text-xs text-ink-soft">{branch}</p>}
+              {restaurant && <p className="text-xs text-ink-soft">{restaurant}</p>}
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {CATEGORIES.map((c) => (
                   <button
@@ -217,10 +220,19 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
                 <h2 className="font-display text-lg font-bold">{t(`category.${category}.label`)}</h2>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col gap-4">
+                <Field label={t("branch.specific.label")} required>
+                  <TextInput
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    placeholder={t("branch.specific.placeholder")}
+                    required
+                  />
+                </Field>
+
                 {category === "finance" && <FinanceForm fields={fields} update={update} />}
                 {category === "discounts" && <DiscountsForm fields={fields} update={update} />}
-                {category === "tech" && <TechForm fields={fields} update={update} branch={branch} />}
+                {category === "tech" && <TechForm fields={fields} update={update} />}
                 {category === "menu" && <MenuForm fields={fields} update={update} />}
                 {category === "other" && <OtherForm fields={fields} update={update} />}
               </div>
@@ -233,7 +245,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
 
               <Button
                 className="mt-5 w-full"
-                disabled={!requiredFieldsOk(category, branch, fields) || submitting}
+                disabled={!requiredFieldsOk(category, restaurant, branch, fields) || submitting}
                 onClick={submit}
               >
                 {submitting ? t("form.submitting") : t("form.submit")}

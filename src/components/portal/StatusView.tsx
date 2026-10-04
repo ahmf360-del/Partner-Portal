@@ -137,7 +137,7 @@ export function StatusView({ accountManagerName }: { accountManagerName: string 
                   {tk.escalated && <Pill tone="warn">{t("status.withAm")}</Pill>}
                 </div>
                 <p className="mt-1 text-sm text-ink-soft">
-                  {t(`category.${tk.category}.label`)} · {tk.branch} · {t("status.filed", { date: formatDateTime(tk.createdAt) })}
+                  {t(`category.${tk.category}.label`)} · {tk.restaurant} · {tk.branch} · {t("status.filed", { date: formatDateTime(tk.createdAt) })}
                 </p>
               </div>
               <span className="text-xs font-medium text-ink-soft">

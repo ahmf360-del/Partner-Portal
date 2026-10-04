@@ -15,7 +15,7 @@ export default async function Home() {
     <PortalWizard
       vendor={{
         name: vendor.name,
-        branches: vendor.branches,
+        restaurants: vendor.restaurants,
         accountManagerName: vendor.accountManagerName,
       }}
     />

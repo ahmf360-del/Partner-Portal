@@ -30,3 +30,14 @@ export const OWNING_TEAM = {
   menu: "Content queue",
   other: "Triage",
 } as const;
+
+// Staff share one login across every department (src/components/staff/StaffQueue.tsx),
+// so a reply's author is attributed by the ticket's owning team, not an
+// individual staff identity.
+export const TEAM_AUTHOR_NAME: Record<string, string> = {
+  [OWNING_TEAM.finance]: "Finance Team",
+  [OWNING_TEAM.discounts]: "Commercial / Growth Team",
+  [OWNING_TEAM.tech]: "Ops / Tech Support Team",
+  [OWNING_TEAM.menu]: "Content Team",
+  [OWNING_TEAM.other]: "Triage Team",
+};

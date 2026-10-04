@@ -31,7 +31,7 @@ export default async function AdminPage() {
           <Card key={v.id} className="flex flex-col gap-3 p-4">
             <div>
               <p className="font-semibold">{v.name}</p>
-              <p className="text-xs text-ink-soft">{v.branches.join(" · ")}</p>
+              <p className="text-xs text-ink-soft">{v.restaurants.join(" · ")}</p>
               <p className="text-xs text-ink-soft">{v.phone}</p>
             </div>
             <VendorCredentials vendorId={v.id} username={v.username} />

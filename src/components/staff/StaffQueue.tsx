@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime, timeUntil } from "@/lib/format";
-import type { TicketWithVendor } from "@/lib/types";
+import type { Category, TicketWithVendor } from "@/lib/types";
+import { OWNING_TEAM } from "@/lib/config";
 import { Button, Card, Pill, TextArea } from "@/components/ui/primitives";
 import { Logo } from "@/components/brand/Logo";
 import { CategoryIcon } from "@/components/portal/CategoryIcon";
@@ -12,6 +13,16 @@ import { LocaleToggle, useLocale } from "@/components/i18n/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n/dictionary";
 
 type Filter = "open" | "escalated" | "resolved" | "all";
+
+// Staff share one login across every department — this is the left-hand nav
+// that picks which team's queue to load, rather than a login tied to a team.
+const DEPARTMENTS: { team: string; labelKey: TranslationKey; category: Category }[] = [
+  { team: OWNING_TEAM.finance, labelKey: "team.dept.finance", category: "finance" },
+  { team: OWNING_TEAM.discounts, labelKey: "team.dept.growth", category: "discounts" },
+  { team: OWNING_TEAM.tech, labelKey: "team.dept.ops", category: "tech" },
+  { team: OWNING_TEAM.menu, labelKey: "team.dept.content", category: "menu" },
+  { team: OWNING_TEAM.other, labelKey: "team.dept.triage", category: "other" },
+];
 
 function escalationReasonText(t: (k: TranslationKey) => string, reason: string | null): string | null {
   if (reason === "vendor_requested") return t("team.escalationReason.vendor_requested");
@@ -57,7 +68,7 @@ function TicketRow({ ticket, active, onClick }: { ticket: TicketWithVendor; acti
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
           <CategoryIcon category={ticket.category} className="h-3.5 w-3.5" />
         </span>
-        {ticket.vendorName} · {ticket.branch}
+        {ticket.vendorName} · {ticket.restaurant} · {ticket.branch}
       </p>
       <p className="mt-1 text-xs text-ink-soft">{t(`category.${ticket.category}.label`)} · {due.text}</p>
       {ticket.escalated && (
@@ -69,10 +80,11 @@ function TicketRow({ ticket, active, onClick }: { ticket: TicketWithVendor; acti
   );
 }
 
-export function StaffQueue({ staff }: { staff: { name: string; team: string } }) {
+export function StaffQueue({ staff }: { staff: { name: string } }) {
   const { t } = useLocale();
   const router = useRouter();
   const dueLabel = useDueLabel();
+  const [team, setTeam] = useState<string>(DEPARTMENTS[0].team);
   const [tickets, setTickets] = useState<TicketWithVendor[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("open");
@@ -82,18 +94,21 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/staff/tickets");
+      const res = await fetch(`/api/staff/tickets?team=${encodeURIComponent(team)}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setTickets(data.tickets ?? []);
     } catch {
       setError(t("team.error.load"));
     }
-  }, [t]);
+  }, [t, team]);
 
   useEffect(() => {
-    // Fetch-on-mount — nothing to subscribe to.
+    // Re-fetch whenever the selected department changes, and clear any
+    // selection from the previous department's list.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedId(null);
+    setTickets(null);
     load();
   }, [load]);
 
@@ -148,15 +163,12 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
   }, [tickets]);
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-5 px-5 py-6 lg:px-10">
+    <div className="mx-auto flex min-h-dvh max-w-7xl flex-col gap-5 px-5 py-6 lg:px-10">
       <header className="flex items-center justify-between">
         <Logo />
         <div className="flex items-center gap-3">
           <LocaleToggle />
-          <div className="text-end">
-            <p className="text-sm font-semibold">{staff.team}</p>
-            <p className="text-xs text-ink-soft">{staff.name}</p>
-          </div>
+          <p className="text-sm font-semibold">{staff.name}</p>
           <button onClick={logout} className="text-xs font-semibold text-ink-soft hover:text-brand">
             {t("rail.logout")}
           </button>
@@ -165,7 +177,22 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
 
       {error && <p className="rounded-lg bg-critical-soft px-3.5 py-2.5 text-xs font-medium text-critical">{error}</p>}
 
-      <div className="grid gap-5 lg:grid-cols-[380px_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[200px_380px_1fr]">
+        <nav className={`flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0 ${selected ? "hidden lg:flex" : ""}`}>
+          {DEPARTMENTS.map((d) => (
+            <button
+              key={d.team}
+              onClick={() => setTeam(d.team)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-start text-sm font-semibold transition ${
+                team === d.team ? "bg-brand text-white" : "bg-brand-soft/30 text-ink-soft hover:bg-brand-soft/50"
+              }`}
+            >
+              <CategoryIcon category={d.category} className="h-4 w-4 shrink-0" />
+              {t(d.labelKey)}
+            </button>
+          ))}
+        </nav>
+
         <div className={`flex flex-col gap-3 ${selected ? "hidden lg:flex" : ""}`}>
           <nav className="flex gap-1 rounded-xl bg-brand-soft/40 p-1">
             {([
@@ -221,7 +248,7 @@ export function StaffQueue({ staff }: { staff: { name: string; team: string } })
                   {selected.reopenedCount > 0 && <Pill tone="critical">{t("status.reopenedCount", { n: selected.reopenedCount })}</Pill>}
                 </div>
                 <p className="mt-1 text-sm text-ink-soft">
-                  {selected.vendorName} · {selected.branch} · {t("status.filed", { date: formatDateTime(selected.createdAt) })}
+                  {selected.vendorName} · {selected.restaurant} · {selected.branch} · {t("status.filed", { date: formatDateTime(selected.createdAt) })}
                 </p>
               </div>
               <span className="text-xs font-medium text-ink-soft">{dueLabel(selected).text}</span>

@@ -59,16 +59,18 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
     case "discounts":
       return (
         <div>
+          <Row label={t("discounts.requestType")} value={fields.offerRequestType ? t(`discounts.requestType.${fields.offerRequestType}`) : undefined} />
           <Row label={t("discounts.percent")} value={fields.discountPercent ? `${fields.discountPercent}%` : undefined} />
           <Row label={t("discounts.startDate")} value={fields.dateRangeStart} />
           <Row label={t("discounts.endDate")} value={fields.dateRangeEnd} />
           <Row label={t("discounts.reason")} value={fields.reason} />
+          <Row label={t("team.attachment")} value={fields.photoName} />
         </div>
       );
     case "tech":
       return (
         <div>
-          <Row label={t("tech.deviceOrBranch")} value={fields.deviceOrBranch} />
+          <Row label={t("tech.deviceIssue")} value={fields.deviceIssueType ? t(`tech.deviceIssue.${fields.deviceIssueType}`) : undefined} />
           <Row label={t("tech.description")} value={fields.issueDescription} />
           <Row label={t("team.attachment")} value={fields.photoName} />
         </div>
