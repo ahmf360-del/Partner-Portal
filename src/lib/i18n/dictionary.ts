@@ -97,6 +97,7 @@ export const dictionary = {
     "discounts.reason.placeholder": "What's the offer, and why now?",
 
     "tech.deviceIssue": "Issue with Talabat device",
+    "tech.deviceIssue.tablet_issue": "Issue with tablet device",
     "tech.deviceIssue.replace_tablet": "Replace tablet",
     "tech.deviceIssue.request_charger": "Request charger",
     "tech.deviceIssue.connection_issue": "Connection issue",
@@ -285,6 +286,7 @@ export const dictionary = {
     "discounts.reason.placeholder": "العرض عبارة عن إيه، وليه دلوقتي؟",
 
     "tech.deviceIssue": "مشكلة في جهاز طلبات (التابلت)",
+    "tech.deviceIssue.tablet_issue": "مشكلة في جهاز التابلت",
     "tech.deviceIssue.replace_tablet": "استبدال التابلت",
     "tech.deviceIssue.request_charger": "طلب شاحن",
     "tech.deviceIssue.connection_issue": "مشكلة في الاتصال",

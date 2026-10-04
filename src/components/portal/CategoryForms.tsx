@@ -144,7 +144,7 @@ export function DiscountsForm({ fields, update }: FormProps) {
   );
 }
 
-const TECH_DEVICE_ISSUES = ["replace_tablet", "request_charger", "connection_issue", "printer_connection"] as const;
+const TECH_DEVICE_ISSUES = ["tablet_issue", "replace_tablet", "request_charger", "connection_issue", "printer_connection"] as const;
 
 export function TechForm({ fields, update }: FormProps) {
   const { t } = useLocale();

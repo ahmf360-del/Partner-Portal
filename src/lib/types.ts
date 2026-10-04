@@ -59,7 +59,7 @@ export interface TicketFields {
   dateRangeEnd?: string;
   reason?: string;
   // Tech
-  deviceIssueType?: "replace_tablet" | "request_charger" | "connection_issue" | "printer_connection";
+  deviceIssueType?: "tablet_issue" | "replace_tablet" | "request_charger" | "connection_issue" | "printer_connection";
   issueDescription?: string;
   // Menu & content
   items?: MenuLineItem[];
