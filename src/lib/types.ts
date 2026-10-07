@@ -48,7 +48,7 @@ export interface TicketFields {
   orderOrInvoiceId?: string;
   bankDetails?: string;
   // Discounts
-  offerRequestType?: "new_items" | "new_offers" | "update_offer";
+  offerRequestType?: "new_offers" | "update_offer";
   discountPercent?: string;
   dateRangeStart?: string;
   dateRangeEnd?: string;

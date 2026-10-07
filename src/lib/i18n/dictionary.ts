@@ -84,7 +84,6 @@ export const dictionary = {
     "finance.bankDetails.placeholder": "",
 
     "discounts.requestType": "Request type",
-    "discounts.requestType.new_items": "New items",
     "discounts.requestType.new_offers": "New offers",
     "discounts.requestType.update_offer": "Update offer",
     "discounts.percent": "Discount %",
@@ -279,7 +278,6 @@ export const dictionary = {
     "finance.bankDetails.placeholder": "",
 
     "discounts.requestType": "نوع الطلب",
-    "discounts.requestType.new_items": "عناصر جديدة",
     "discounts.requestType.new_offers": "عروض جديدة",
     "discounts.requestType.update_offer": "تحديث عرض",
     "discounts.percent": "نسبة الخصم %",

@@ -92,7 +92,7 @@ export function FinanceForm({ fields, update }: FormProps) {
   );
 }
 
-const DISCOUNT_REQUEST_TYPES = ["new_items", "new_offers", "update_offer"] as const;
+const DISCOUNT_REQUEST_TYPES = ["new_offers", "update_offer"] as const;
 
 export function DiscountsForm({ fields, update }: FormProps) {
   const { t } = useLocale();
