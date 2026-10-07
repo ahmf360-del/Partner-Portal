@@ -14,6 +14,13 @@ const PATHS: Record<Category, React.ReactNode> = {
       <circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none" />
     </>
   ),
+  branches: (
+    <>
+      <path d="M4 21V11l8-7 8 7v10" />
+      <path d="M9.5 21v-6.5h5V21" />
+      <path d="M4 11h16" />
+    </>
+  ),
   tech: (
     <>
       <rect x="5" y="2.5" width="14" height="19" rx="2.3" />

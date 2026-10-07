@@ -6,7 +6,7 @@ import { Logo } from "@/components/brand/Logo";
 import { BrandRail, RailSteps } from "@/components/brand/BrandRail";
 import { StatusView } from "@/components/portal/StatusView";
 import { CategoryIcon } from "@/components/portal/CategoryIcon";
-import { DiscountsForm, FinanceForm, MenuForm, OtherForm, TechForm } from "@/components/portal/CategoryForms";
+import { BranchesForm, DiscountsForm, FinanceForm, MenuForm, OtherForm, TechForm } from "@/components/portal/CategoryForms";
 import { Button, Card, Field, Pill, TextInput } from "@/components/ui/primitives";
 import { LocaleToggle, useLocale } from "@/components/i18n/LocaleProvider";
 import { CATEGORIES } from "@/lib/types";
@@ -21,7 +21,8 @@ interface VendorSummary {
 type Step = "restaurant" | "category" | "form" | "done";
 
 function requiredFieldsOk(category: Category, restaurant: string, branch: string, fields: TicketFields): boolean {
-  if (!restaurant || !branch.trim()) return false;
+  if (!restaurant) return false;
+  if (category === "tech" && !branch.trim()) return false;
   switch (category) {
     case "finance": {
       if (!fields.issueType) return false;
@@ -33,6 +34,8 @@ function requiredFieldsOk(category: Category, restaurant: string, branch: string
     }
     case "discounts":
       return !!fields.offerRequestType && !!fields.reason && !!fields.discountPercent;
+    case "branches":
+      return !!fields.branchRequestType && !!fields.branchRequestDetails;
     case "tech":
       return !!fields.deviceIssueType && !!fields.issueDescription;
     case "menu":
@@ -70,6 +73,18 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
     setTab("new");
   }
 
+  // The tab switcher's "New request" button should just return to wherever
+  // the in-progress request was left (not restart the whole restaurant →
+  // category → form chain) — a fresh start only makes sense once a request
+  // has actually been submitted.
+  function goToNewTab() {
+    if (step === "done") {
+      startNew();
+    } else {
+      setTab("new");
+    }
+  }
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.refresh();
@@ -83,7 +98,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
       const res = await fetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurant, branch, category, fields }),
+        body: JSON.stringify({ restaurant, branch: category === "tech" ? branch : "", category, fields }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -145,7 +160,7 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
           {(["new", "tickets"] as const).map((tb) => (
             <button
               key={tb}
-              onClick={() => (tb === "new" ? startNew() : setTab(tb))}
+              onClick={() => (tb === "new" ? goToNewTab() : setTab(tb))}
               className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
                 tab === tb ? "bg-white text-brand-dark shadow-sm" : "text-ink-soft"
               }`}
@@ -221,17 +236,20 @@ export function PortalWizard({ vendor }: { vendor: VendorSummary }) {
               </div>
 
               <div className="mt-4 flex flex-col gap-4">
-                <Field label={t("branch.specific.label")} required>
-                  <TextInput
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
-                    placeholder={t("branch.specific.placeholder")}
-                    required
-                  />
-                </Field>
+                {category === "tech" && (
+                  <Field label={t("branch.specific.label")} required>
+                    <TextInput
+                      value={branch}
+                      onChange={(e) => setBranch(e.target.value)}
+                      placeholder={t("branch.specific.placeholder")}
+                      required
+                    />
+                  </Field>
+                )}
 
                 {category === "finance" && <FinanceForm fields={fields} update={update} />}
                 {category === "discounts" && <DiscountsForm fields={fields} update={update} />}
+                {category === "branches" && <BranchesForm fields={fields} update={update} />}
                 {category === "tech" && <TechForm fields={fields} update={update} />}
                 {category === "menu" && <MenuForm fields={fields} update={update} />}
                 {category === "other" && <OtherForm fields={fields} update={update} />}

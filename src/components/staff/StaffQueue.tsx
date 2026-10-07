@@ -22,6 +22,7 @@ type Filter = "open" | "escalated" | "resolved" | "all";
 const DEPARTMENTS: { team: string; labelKey: TranslationKey; category: Category }[] = [
   { team: OWNING_TEAM.finance, labelKey: "category.finance.label", category: "finance" },
   { team: OWNING_TEAM.discounts, labelKey: "category.discounts.label", category: "discounts" },
+  { team: OWNING_TEAM.branches, labelKey: "category.branches.label", category: "branches" },
   { team: OWNING_TEAM.tech, labelKey: "category.tech.label", category: "tech" },
   { team: OWNING_TEAM.menu, labelKey: "category.menu.label", category: "menu" },
   { team: OWNING_TEAM.other, labelKey: "category.other.label", category: "other" },
@@ -71,7 +72,7 @@ function TicketRow({ ticket, active, onClick }: { ticket: TicketWithVendor; acti
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-dark">
           <CategoryIcon category={ticket.category} className="h-3.5 w-3.5" />
         </span>
-        {ticket.vendorName} · {ticket.restaurant} · {ticket.branch}
+        {ticket.vendorName} · {ticket.restaurant}{ticket.branch ? ` · ${ticket.branch}` : ""}
       </p>
       <p className="mt-1 text-xs text-ink-soft">{t(`category.${ticket.category}.label`)} · {due.text}</p>
       {ticket.escalated && (
@@ -304,7 +305,7 @@ export function StaffQueue({ staff }: { staff: { name: string } }) {
                   {selected.reopenedCount > 0 && <Pill tone="critical">{t("status.reopenedCount", { n: selected.reopenedCount })}</Pill>}
                 </div>
                 <p className="mt-1 text-sm text-ink-soft">
-                  {selected.vendorName} · {selected.restaurant} · {selected.branch} · {t("status.filed", { date: formatDateTime(selected.createdAt) })}
+                  {selected.vendorName} · {selected.restaurant}{selected.branch ? ` · ${selected.branch}` : ""} · {t("status.filed", { date: formatDateTime(selected.createdAt) })}
                 </p>
               </div>
               <span className="text-xs font-medium text-ink-soft">{dueLabel(selected).text}</span>

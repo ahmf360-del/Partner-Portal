@@ -67,6 +67,14 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
           <Row label={t("team.attachment")} value={fields.photoName} />
         </div>
       );
+    case "branches":
+      return (
+        <div>
+          <Row label={t("branches.requestType")} value={fields.branchRequestType ? t(`branches.requestType.${fields.branchRequestType}`) : undefined} />
+          <Row label={t("branches.details")} value={fields.branchRequestDetails} />
+          <Row label={t("team.attachment")} value={fields.photoName} />
+        </div>
+      );
     case "tech":
       return (
         <div>

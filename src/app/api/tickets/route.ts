@@ -17,19 +17,21 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json()) as {
     restaurant: string;
-    branch: string;
+    branch?: string;
     category: Category;
     fields: TicketFields;
   };
 
-  if (!body.restaurant || !body.branch || !body.category) {
-    return NextResponse.json({ error: "Missing restaurant, branch, or category" }, { status: 400 });
+  // branch is only collected for Tech Support (src/components/portal/PortalWizard.tsx)
+  // — every other category legitimately submits it blank.
+  if (!body.restaurant || !body.category) {
+    return NextResponse.json({ error: "Missing restaurant or category" }, { status: 400 });
   }
 
   const result = createTicket({
     vendorId,
     restaurant: body.restaurant,
-    branch: body.branch,
+    branch: body.branch ?? "",
     category: body.category,
     fields: body.fields ?? {},
   });

@@ -11,6 +11,7 @@ export const THRESHOLDS = {
 export const SLA_HOURS = {
   finance: 48,
   discounts: 24,
+  branches: 48,
   tech: 4,
   other: 24,
   menu: {
@@ -20,12 +21,14 @@ export const SLA_HOURS = {
     add_item: 48,
     update_content: 24,
     full_menu_price_change: 48,
+    menu_update: 24,
   },
 } as const;
 
 export const OWNING_TEAM = {
   finance: "Finance queue",
   discounts: "Commercial / Growth",
+  branches: "Branches & Delivery",
   tech: "Ops / Tech support",
   menu: "Content queue",
   other: "Triage",
@@ -37,6 +40,7 @@ export const OWNING_TEAM = {
 export const TEAM_AUTHOR_NAME: Record<string, string> = {
   [OWNING_TEAM.finance]: "Finance Team",
   [OWNING_TEAM.discounts]: "Commercial / Growth Team",
+  [OWNING_TEAM.branches]: "Branches & Delivery Team",
   [OWNING_TEAM.tech]: "Ops / Tech Support Team",
   [OWNING_TEAM.menu]: "Content Team",
   [OWNING_TEAM.other]: "Triage Team",

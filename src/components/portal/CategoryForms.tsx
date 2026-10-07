@@ -92,7 +92,7 @@ export function FinanceForm({ fields, update }: FormProps) {
   );
 }
 
-const DISCOUNT_REQUEST_TYPES = ["menu_update", "new_items", "new_offers", "update_offer", "new_branch", "update_branch"] as const;
+const DISCOUNT_REQUEST_TYPES = ["new_items", "new_offers", "update_offer"] as const;
 
 export function DiscountsForm({ fields, update }: FormProps) {
   const { t } = useLocale();
@@ -144,7 +144,33 @@ export function DiscountsForm({ fields, update }: FormProps) {
   );
 }
 
-const TECH_DEVICE_ISSUES = ["tablet_issue", "replace_tablet", "request_charger", "connection_issue", "printer_connection"] as const;
+const BRANCH_REQUEST_TYPES = ["new_branch", "update_branch", "delivery_times", "other"] as const;
+
+export function BranchesForm({ fields, update }: FormProps) {
+  const { t } = useLocale();
+  return (
+    <div className="grid gap-4">
+      <Field label={t("branches.requestType")} required>
+        <Select
+          value={fields.branchRequestType ?? ""}
+          onChange={(e) => update({ branchRequestType: e.target.value as TicketFields["branchRequestType"] })}
+          required
+        >
+          <option value="" disabled>{t("field.selectOne")}</option>
+          {BRANCH_REQUEST_TYPES.map((v) => (
+            <option key={v} value={v}>{t(`branches.requestType.${v}`)}</option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("branches.details")} required>
+        <TextArea value={fields.branchRequestDetails ?? ""} onChange={(e) => update({ branchRequestDetails: e.target.value })} required />
+      </Field>
+      <PhotoField value={fields.photoName} onChange={(photoName) => update({ photoName })} />
+    </div>
+  );
+}
+
+const TECH_DEVICE_ISSUES = ["tablet_issue", "replace_tablet", "connection_issue", "printer_issue"] as const;
 
 export function TechForm({ fields, update }: FormProps) {
   const { t } = useLocale();
@@ -241,6 +267,13 @@ function MenuItemFields({ item, onChange }: { item: MenuLineItem; onChange: (pat
           <TextInput placeholder={t("menu.effectiveDate")} type="date" value={item.effectiveDate ?? ""} onChange={(e) => onChange({ effectiveDate: e.target.value })} />
           <TextArea placeholder={t("menu.description")} value={item.description ?? ""} onChange={(e) => onChange({ description: e.target.value })} />
           <PhotoField value={item.photoName} onChange={(photoName) => onChange({ photoName })} label={t("menu.attachFile")} hint={t("menu.attachFile.fullMenu.hint")} />
+        </div>
+      );
+    case "menu_update":
+      return (
+        <div className="grid gap-3">
+          <TextArea placeholder={t("menu.description")} value={item.description ?? ""} onChange={(e) => onChange({ description: e.target.value })} />
+          <PhotoField value={item.photoName} onChange={(photoName) => onChange({ photoName })} label={t("menu.attachFile")} hint={t("menu.attachFile.content.hint")} />
         </div>
       );
   }

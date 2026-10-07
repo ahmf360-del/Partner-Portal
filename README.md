@@ -7,9 +7,9 @@ it's for), and gets a ticket ID plus a status page they can return to any time. 
 English and Arabic (with RTL layout) on the same URL, switchable in-page.
 
 Now covers both sides: the vendor flow (steps 1–2) **and** the internal team queues (step 3) where
-Finance, Commercial/Growth, Ops/Tech, Content, and Triage open, view, and reply to what's routed to
-them. The AM escalation dashboard and real WhatsApp/SMS delivery are still follow-up work — see
-"What's mocked" below.
+Finance, Commercial/Growth, Branches & Delivery, Ops/Tech, Content, and Triage open, view, and
+reply to what's routed to them. The AM escalation dashboard and real WhatsApp/SMS delivery are
+still follow-up work — see "What's mocked" below.
 
 The account manager is deliberately not the first point of contact: a vendor's request always goes
 to the owning team first, and only shows an "Escalate to account manager" option on the tracking
@@ -69,9 +69,9 @@ vendor access. One shared login for every department (demo account, `src/lib/db.
 | `staff`  | `staff-2026`  |
 
 After signing in, a full-height dark-purple sidebar (`bg-brand-dark`, the same darker shade used
-elsewhere for hover/active states) lists all five departments — labeled with the exact same names
-vendors see when filing a request (Finance, Discounts & Offers, Tech Support, Menu & Content,
-Other), not an internal team name — clicking one loads that team's queue (`listTicketsForTeam`,
+elsewhere for hover/active states) lists all six departments — labeled with the exact same names
+vendors see when filing a request (Finance, Discounts & Offers, Branches & Delivery, Tech Support,
+Menu & Content, Other), not an internal team name — clicking one loads that team's queue (`listTicketsForTeam`,
 scoped by the ticket's own `owning_team`, not by who's logged in; `OWNING_TEAM` in
 `src/lib/config.ts` maps each vendor-facing category to the internal team string used for
 routing/filtering). On mobile the sidebar collapses to a horizontal scrollable row instead of
@@ -86,30 +86,36 @@ same BrandRail split-screen layout as the vendor side — same design system, sa
 ## Restaurant + branch
 
 Every ticket is filed against a restaurant (the upfront picker, `vendor.restaurants` —
-`src/lib/db.ts`) and a specific branch of it (a required free-text field inside the form itself,
-since a vendor can run branches that aren't a fixed list). A vendor with just one restaurant
-skips straight to the category picker, same as the old single-branch case.
+`src/lib/db.ts`). The specific branch/chain location is only asked inside Tech Support's form
+(a tablet or printer issue lives at one physical branch) — every other category only needs the
+restaurant. A vendor with just one restaurant skips straight to the category picker, same as the
+old single-branch case.
 
 ## Category fields
 
-Every category now also has an optional attachment field.
+Every category also has an optional attachment field.
 
 - **Finance**: payout delay, payment timeline, changing bank details (new bank details go to a
   required text field, applied only after finance verifies), proof of transfer, statement of
   account (SOA).
-- **Discounts & offers**: request type (menu update, new items, new offers, update offer, new
-  branch, update branch), discount %, start/end date, offer details (what the offer is and why) —
-  auto-approved at or under the threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
-- **Tech support**: issue with the Talabat device (replace tablet, request charger, connection
-  issue, printer connection), description.
+- **Discounts & offers**: request type (new items, new offers, update offer), discount %,
+  start/end date, offer details (what the offer is and why) — auto-approved at or under the
+  threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
+- **Branches & Delivery**: request type (new branch, update branch, change delivery times, other),
+  details.
+- **Tech support**: issue with the Talabat device (issue with tablet device, replace tablet,
+  connection issue, printer issue), the chain/branch it's at, description.
 - **Menu & Content**: item price change, remove item permanently, add a new item, full menu price
-  change, or update description/photo — per line item, multiple items per ticket. Full menu price
-  change and update description/photo both prompt to attach a file (new price list, or the new
-  photo).
+  change, update description/photo, or a general menu update — per line item, multiple items per
+  ticket. Full menu price change, update description/photo, and menu update all prompt to attach a
+  file (new price list, or the new photo).
 
 ## What's real
 
-- Full vendor flow: sign in → restaurant → category → dynamic form (incl. branch) → submit → ticket ID → track/reopen/rate.
+- Full vendor flow: sign in → restaurant → category → dynamic form → submit → ticket ID → track/reopen/rate.
+  Switching to "My tickets" mid-form and back to "New request" returns to that same in-progress
+  step rather than restarting the restaurant/category chain — only an actual submission (or the
+  explicit "Submit another" button) starts a fresh request.
 - Menu & Content supports multiple line items per ticket, each independently routed by risk
   (`src/lib/tickets.ts` → `resolveMenuItem`), matching the design doc's Fig. 3.
 - Auto-apply vs. human-review logic, SLA due dates, owning-team assignment, and the escalation

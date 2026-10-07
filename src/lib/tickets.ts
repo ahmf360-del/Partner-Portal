@@ -179,6 +179,8 @@ function resolveMenuItem(item: MenuLineItem): { autoApplied: boolean; slaHours: 
       return { autoApplied: false, slaHours: SLA_HOURS.menu.update_content };
     case "full_menu_price_change":
       return { autoApplied: false, slaHours: SLA_HOURS.menu.full_menu_price_change };
+    case "menu_update":
+      return { autoApplied: false, slaHours: SLA_HOURS.menu.menu_update };
   }
 }
 
@@ -221,6 +223,7 @@ function resolveCategory(
   }
 
   if (category === "finance") return { autoApplied: false, slaHours: SLA_HOURS.finance, escalated, escalationReason };
+  if (category === "branches") return { autoApplied: false, slaHours: SLA_HOURS.branches, escalated, escalationReason };
   if (category === "tech") return { autoApplied: false, slaHours: SLA_HOURS.tech, escalated, escalationReason };
   return { autoApplied: false, slaHours: SLA_HOURS.other, escalated, escalationReason };
 }

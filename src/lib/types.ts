@@ -1,11 +1,12 @@
-export type Category = "finance" | "discounts" | "tech" | "menu" | "other";
+export type Category = "finance" | "discounts" | "branches" | "tech" | "menu" | "other";
 
 export type MenuChangeType =
   | "price_change"
   | "remove_permanent"
   | "add_item"
   | "full_menu_price_change"
-  | "update_content";
+  | "update_content"
+  | "menu_update";
 
 export type TicketStatus = "received" | "in_progress" | "resolved";
 
@@ -47,19 +48,16 @@ export interface TicketFields {
   orderOrInvoiceId?: string;
   bankDetails?: string;
   // Discounts
-  offerRequestType?:
-    | "menu_update"
-    | "new_items"
-    | "new_offers"
-    | "update_offer"
-    | "new_branch"
-    | "update_branch";
+  offerRequestType?: "new_items" | "new_offers" | "update_offer";
   discountPercent?: string;
   dateRangeStart?: string;
   dateRangeEnd?: string;
   reason?: string;
+  // Branches & Delivery
+  branchRequestType?: "new_branch" | "update_branch" | "delivery_times" | "other";
+  branchRequestDetails?: string;
   // Tech
-  deviceIssueType?: "tablet_issue" | "replace_tablet" | "request_charger" | "connection_issue" | "printer_connection";
+  deviceIssueType?: "tablet_issue" | "replace_tablet" | "connection_issue" | "printer_issue";
   issueDescription?: string;
   // Menu & content
   items?: MenuLineItem[];
@@ -113,7 +111,7 @@ export interface TicketMessage {
 // Display labels for these live in the i18n dictionary (category.*.label,
 // menu.changeType.*) since the portal is bilingual — these arrays just fix
 // the enumeration order for the UI.
-export const CATEGORIES: Category[] = ["finance", "discounts", "tech", "menu", "other"];
+export const CATEGORIES: Category[] = ["finance", "discounts", "branches", "tech", "menu", "other"];
 
 export const MENU_CHANGE_TYPES: MenuChangeType[] = [
   "price_change",
@@ -121,4 +119,5 @@ export const MENU_CHANGE_TYPES: MenuChangeType[] = [
   "add_item",
   "full_menu_price_change",
   "update_content",
+  "menu_update",
 ];
