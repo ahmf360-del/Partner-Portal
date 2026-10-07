@@ -49,10 +49,13 @@ export interface TicketFields {
   bankDetails?: string;
   // Discounts
   offerRequestType?: "new_offers" | "update_offer";
+  priceBefore?: string;
+  priceAfter?: string;
   discountPercent?: string;
   dateRangeStart?: string;
   dateRangeEnd?: string;
   reason?: string;
+  breadfastExclusive?: boolean;
   // Branches & Delivery
   branchRequestType?: "new_branch" | "update_branch" | "delivery_times" | "other";
   branchRequestDetails?: string;

@@ -60,10 +60,13 @@ export function TicketFieldsView({ category, fields }: { category: Category; fie
       return (
         <div>
           <Row label={t("discounts.requestType")} value={fields.offerRequestType ? t(`discounts.requestType.${fields.offerRequestType}`) : undefined} />
+          <Row label={t("discounts.priceBefore")} value={fields.priceBefore ? `EGP ${fields.priceBefore}` : undefined} />
+          <Row label={t("discounts.priceAfter")} value={fields.priceAfter ? `EGP ${fields.priceAfter}` : undefined} />
           <Row label={t("discounts.percent")} value={fields.discountPercent ? `${fields.discountPercent}%` : undefined} />
           <Row label={t("discounts.startDate")} value={fields.dateRangeStart} />
           <Row label={t("discounts.endDate")} value={fields.dateRangeEnd} />
           <Row label={t("discounts.reason")} value={fields.reason} />
+          <Row label={t("discounts.breadfastExclusive")} value={fields.breadfastExclusive ? t("field.yes") : t("field.no")} />
           <Row label={t("team.attachment")} value={fields.photoName} />
         </div>
       );

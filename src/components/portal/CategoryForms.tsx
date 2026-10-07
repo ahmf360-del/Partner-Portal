@@ -115,6 +115,12 @@ export function DiscountsForm({ fields, update }: FormProps) {
           </Select>
         </Field>
       </div>
+      <Field label={t("discounts.priceBefore")}>
+        <TextInput type="number" min={0} value={fields.priceBefore ?? ""} onChange={(e) => update({ priceBefore: e.target.value })} />
+      </Field>
+      <Field label={t("discounts.priceAfter")}>
+        <TextInput type="number" min={0} value={fields.priceAfter ?? ""} onChange={(e) => update({ priceAfter: e.target.value })} />
+      </Field>
       <Field
         label={t("discounts.percent")}
         required
@@ -137,6 +143,15 @@ export function DiscountsForm({ fields, update }: FormProps) {
           <TextArea value={fields.reason ?? ""} onChange={(e) => update({ reason: e.target.value })} placeholder={t("discounts.reason.placeholder")} required />
         </Field>
       </div>
+      <label className="sm:col-span-2 flex items-center gap-2.5 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm">
+        <input
+          type="checkbox"
+          checked={!!fields.breadfastExclusive}
+          onChange={(e) => update({ breadfastExclusive: e.target.checked })}
+          className="h-4 w-4 accent-[var(--bf-magenta)]"
+        />
+        {t("discounts.breadfastExclusive")}
+      </label>
       <div className="sm:col-span-2">
         <PhotoField value={fields.photoName} onChange={(photoName) => update({ photoName })} />
       </div>

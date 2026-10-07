@@ -98,9 +98,9 @@ Every category also has an optional attachment field.
 - **Finance**: payout delay, payment timeline, changing bank details (new bank details go to a
   required text field, applied only after finance verifies), proof of transfer, statement of
   account (SOA).
-- **Discounts & offers**: request type (new offers, update offer), discount %,
-  start/end date, offer details (what the offer is and why) — auto-approved at or under the
-  threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
+- **Discounts & offers**: request type (new offers, update offer), price before/after, discount %,
+  start/end date, offer details (what the offer is and why), whether it's exclusive to Breadfast —
+  auto-approved at or under the threshold in `src/lib/config.ts`, otherwise reviewed by Commercial/Growth.
 - **Branches & Delivery**: request type (new branch, update branch, change delivery times, other),
   details.
 - **Tech support**: issue with the Talabat device (issue with tablet device, replace tablet,
